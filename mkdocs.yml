@@ -1,0 +1,160 @@
+site_name: Python DAB Multiplexer
+site_description: A pure Python implementation of a DAB/DAB+ multiplexer
+site_author: python-dabmux contributors
+site_url: https://github.com/python-dabmux/python-dabmux
+
+repo_name: python-dabmux
+repo_url: https://github.com/python-dabmux/python-dabmux
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - mermaid2
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid_custom
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - getting-started/index.md
+    - Installation: getting-started/installation.md
+    - Your First Multiplex: getting-started/first-multiplex.md
+    - Basic Concepts: getting-started/basic-concepts.md
+  - User Guide:
+    - user-guide/index.md
+    - CLI Reference: user-guide/cli-reference.md
+    - Configuration:
+      - user-guide/configuration/index.md
+      - Ensemble Parameters: user-guide/configuration/ensemble.md
+      - Services: user-guide/configuration/services.md
+      - Subchannels: user-guide/configuration/subchannels.md
+      - Protection Levels: user-guide/configuration/protection.md
+      - Examples: user-guide/configuration/examples.md
+    - Inputs:
+      - user-guide/inputs/index.md
+      - File Inputs: user-guide/inputs/file-inputs.md
+      - Network Inputs: user-guide/inputs/network-inputs.md
+      - Audio Formats: user-guide/inputs/audio-formats.md
+    - Outputs:
+      - user-guide/outputs/index.md
+      - ETI Files: user-guide/outputs/eti-files.md
+      - EDI Network: user-guide/outputs/edi-network.md
+      - PFT Fragmentation: user-guide/outputs/pft-fragmentation.md
+  - Architecture:
+    - architecture/index.md
+    - System Design: architecture/system-design.md
+    - ETI Frames: architecture/eti-frames.md
+    - FIG Carousel: architecture/fig-carousel.md
+    - Data Flow: architecture/data-flow.md
+    - EDI Protocol: architecture/edi-protocol.md
+    - Configuration Hierarchy: architecture/configuration-hierarchy.md
+    - Module Breakdown: architecture/modules.md
+  - Tutorials:
+    - tutorials/index.md
+    - Basic Single Service: tutorials/basic-single-service.md
+    - Multi-Service Ensemble: tutorials/multi-service-ensemble.md
+    - DAB+ Setup: tutorials/dab-plus-setup.md
+    - Network Streaming: tutorials/network-streaming.md
+    - PFT with FEC: tutorials/pft-with-fec.md
+    - Custom Inputs: tutorials/custom-inputs.md
+  - API Reference:
+    - api-reference/index.md
+    - Core: api-reference/core.md
+    - Multiplexer: api-reference/mux.md
+    - Input: api-reference/input.md
+    - Output: api-reference/output.md
+    - FIG Generation: api-reference/fig.md
+    - EDI Protocol: api-reference/edi.md
+    - Audio Parsing: api-reference/audio.md
+    - FEC: api-reference/fec.md
+    - Utilities: api-reference/utils.md
+    - Configuration: api-reference/config.md
+  - Advanced Topics:
+    - advanced/index.md
+    - FIG Types: advanced/fig-types.md
+    - Character Encoding: advanced/character-encoding.md
+    - Timestamps & Sync: advanced/timestamps-sync.md
+    - Reed-Solomon FEC: advanced/reed-solomon.md
+    - Transmission Modes: advanced/transmission-modes.md
+    - Extending: advanced/extending.md
+  - Troubleshooting:
+    - troubleshooting/index.md
+    - Common Errors: troubleshooting/common-errors.md
+    - Input Issues: troubleshooting/input-issues.md
+    - Output Issues: troubleshooting/output-issues.md
+    - Network Issues: troubleshooting/network-issues.md
+    - Debugging: troubleshooting/debugging.md
+  - FAQ: faq.md
+  - Standards:
+    - standards/index.md
+    - ETSI References: standards/etsi-references.md
+    - Compliance: standards/compliance.md
+  - Development:
+    - development/index.md
+    - Contributing: development/contributing.md
+    - Testing: development/testing.md
+    - Phase Summaries: development/phase-summaries.md
+    - Roadmap: development/roadmap.md
+  - Glossary: glossary.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/python-dabmux/python-dabmux
+
+copyright: Copyright &copy; 2024 python-dabmux contributors

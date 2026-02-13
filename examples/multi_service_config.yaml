@@ -1,0 +1,115 @@
+# DAB Multiplexer Configuration - Multiple Services
+#
+# This configuration demonstrates a multi-service DAB ensemble
+# with both DAB (MPEG Layer II) and DAB+ (HE-AAC) services.
+
+ensemble:
+  id: '0xCE15'
+  ecc: '0xE1'
+  transmission_mode: 'I'
+  label:
+    text: 'DAB Multiplex'
+    short: 'DABMux'
+  lto_auto: true
+
+# Multiple subchannels with different bitrates
+subchannels:
+  # High-quality music station (DAB)
+  - uid: 'music_hq'
+    id: 0
+    type: 'audio'
+    bitrate: 160
+    start_address: 0
+    protection:
+      level: 3
+    input: 'file://music.mp2'
+
+  # News/talk station (DAB+, lower bitrate)
+  - uid: 'news'
+    id: 1
+    type: 'dabplus'
+    bitrate: 64
+    start_address: 128
+    protection:
+      level: 2
+    input: 'file://news.aac'
+
+  # Pop music station (DAB+)
+  - uid: 'pop'
+    id: 2
+    type: 'dabplus'
+    bitrate: 80
+    start_address: 192
+    protection:
+      level: 2
+    input: 'file://pop.aac'
+
+  # Classical music station (DAB+, high quality)
+  - uid: 'classical'
+    id: 3
+    type: 'dabplus'
+    bitrate: 96
+    start_address: 272
+    protection:
+      level: 3
+    input: 'file://classical.aac'
+
+# Multiple services
+services:
+  # Music station
+  - uid: 'music_service'
+    id: '0x5001'
+    label:
+      text: 'Classic Hits'
+      short: 'Hits'
+    pty: 10  # Pop Music
+    language: 9  # English
+
+  # News station
+  - uid: 'news_service'
+    id: '0x5002'
+    label:
+      text: 'News 24/7'
+      short: 'News24'
+    pty: 1  # News
+    language: 9  # English
+
+  # Pop station
+  - uid: 'pop_service'
+    id: '0x5003'
+    label:
+      text: 'Top 40 Radio'
+      short: 'Top40'
+    pty: 10  # Pop Music
+    language: 9  # English
+
+  # Classical station
+  - uid: 'classical_service'
+    id: '0x5004'
+    label:
+      text: 'Classical FM'
+      short: 'Classic'
+    pty: 6  # Classical Music
+    language: 9  # English
+
+# Link services to subchannels
+components:
+  - uid: 'music_comp'
+    service_id: '0x5001'
+    subchannel_id: 0
+    type: 0
+
+  - uid: 'news_comp'
+    service_id: '0x5002'
+    subchannel_id: 1
+    type: 0
+
+  - uid: 'pop_comp'
+    service_id: '0x5003'
+    subchannel_id: 2
+    type: 0
+
+  - uid: 'classical_comp'
+    service_id: '0x5004'
+    subchannel_id: 3
+    type: 0

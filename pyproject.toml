@@ -21,6 +21,12 @@ dev = [
     "pytest-cov>=4.0",
     "mypy>=1.0",
 ]
+docs = [
+    "mkdocs>=1.5",
+    "mkdocs-material>=9.0",
+    "mkdocs-mermaid2-plugin>=1.1",
+    "pymdown-extensions>=10.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

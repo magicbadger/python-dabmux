@@ -1,0 +1,53 @@
+# DAB Multiplexer Configuration Example
+#
+# This is a basic configuration for a single-service DAB ensemble.
+
+ensemble:
+  # Ensemble ID (16-bit hex value)
+  id: '0xCE15'
+
+  # Extended Country Code (8-bit hex value)
+  # 0xE1 = Germany, 0xE2 = UK, etc.
+  ecc: '0xE1'
+
+  # Transmission mode: I, II, III, or IV
+  # Mode I is most common (1536 kHz bandwidth)
+  transmission_mode: 'I'
+
+  # Ensemble label (max 16 characters)
+  label:
+    text: 'Test Ensemble'
+    short: 'Test'  # Short label (max 8 characters)
+
+  # Local Time Offset
+  lto_auto: true  # Automatically calculate from system time
+  lto: 0          # Manual LTO in half-hours (-24 to +24), used if lto_auto=false
+
+# Subchannels define the audio/data streams
+subchannels:
+  - uid: 'audio1'
+    id: 0                    # Subchannel ID (0-63)
+    type: 'audio'            # Type: 'audio', 'dabplus', 'packet', 'data'
+    bitrate: 128             # Bitrate in kbps
+    start_address: 0         # Start address in Capacity Units
+    protection:
+      level: 2               # Protection level (0-4, higher = more robust)
+      shortform: true        # Use short form protection
+    input: 'file://audio.mp2'  # Input source
+
+# Services define the radio stations/programs
+services:
+  - uid: 'service1'
+    id: '0x5001'             # Service ID (16-bit hex)
+    label:
+      text: 'Radio One'
+      short: 'Radio1'
+    pty: 1                   # Programme Type (0=None, 1=News, etc.)
+    language: 9              # Language code (9=English)
+
+# Components link services to subchannels
+components:
+  - uid: 'comp1'
+    service_id: '0x5001'     # Links to service above
+    subchannel_id: 0         # Links to subchannel above
+    type: 0                  # Component type (0=Audio)

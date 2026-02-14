@@ -172,7 +172,7 @@ class SineWaveInput(InputBase):
 
 Modify python-dabmux to recognize your custom input URI:
 
-Edit `dabmux/input/__init__.py`:
+Edit `src/dabmux/input/__init__.py`:
 
 ```python
 from dabmux.input.base import InputBase

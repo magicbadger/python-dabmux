@@ -92,19 +92,23 @@ pytest tests/unit/edi -v         # EDI protocol tests
 
 ```
 python-dabmux/
-├── dabmux/
-│   ├── audio/         # Audio frame parsing (MPEG Layer II, DAB+)
-│   ├── core/          # Core data structures (ETI frames, ensemble config)
-│   ├── edi/           # EDI protocol (TAG items, PFT, encoder)
-│   ├── fec/           # Forward error correction (Reed-Solomon)
-│   ├── fig/           # Fast Information Group (FIG) generation
-│   ├── input/         # File input abstractions
-│   ├── network/       # Network inputs (UDP, TCP)
-│   ├── output/        # Output abstractions (file, network, EDI)
-│   ├── utils/         # Utilities (CRC, logging, timestamps, statistics)
-│   └── mux.py         # Main multiplexer
-└── tests/
-    └── unit/          # Unit tests
+├── src/
+│   └── dabmux/        # Source code
+│       ├── audio/     # Audio frame parsing (MPEG Layer II, DAB+)
+│       ├── core/      # Core data structures (ETI frames, ensemble config)
+│       ├── edi/       # EDI protocol (TAG items, PFT, encoder)
+│       ├── fec/       # Forward error correction (Reed-Solomon)
+│       ├── fig/       # Fast Information Group (FIG) generation
+│       ├── input/     # File input abstractions
+│       ├── network/   # Network inputs (UDP, TCP)
+│       ├── output/    # Output abstractions (file, network, EDI)
+│       ├── utils/     # Utilities (CRC, logging, timestamps, statistics)
+│       └── mux.py     # Main multiplexer
+├── tests/
+│   └── unit/          # Unit tests
+├── docs/              # Documentation
+├── examples/          # Example configurations
+└── pyproject.toml     # Project configuration
 ```
 
 ## References

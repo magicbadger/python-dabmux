@@ -72,6 +72,7 @@ nav:
   - Home: index.md
   - Getting Started:
     - getting-started/index.md
+    - ⚡ Quick Setup (5 min): getting-started/quick-setup.md
     - Installation: getting-started/installation.md
     - Your First Multiplex: getting-started/first-multiplex.md
     - Basic Concepts: getting-started/basic-concepts.md

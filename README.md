@@ -81,45 +81,81 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -e ".[dev]"
 ```
 
+## Quick Start
+
+Create your first DAB multiplex in 3 steps:
+
+### 1. Prepare Audio
+
+```bash
+# Convert any audio to MPEG Layer II (DAB format)
+ffmpeg -i input.wav -c:a mp2 -ar 48000 -b:a 128k audio.mp2
+```
+
+### 2. Create Configuration
+
+Create `config.yaml`:
+
+```yaml
+ensemble:
+  id: '0xCE15'
+  label:
+    text: 'My First DAB'
+
+subchannels:
+  - uid: 'audio1'
+    id: 0
+    type: 'audio'
+    bitrate: 128
+    protection:
+      level: 2
+    input: 'file://audio.mp2'
+
+services:
+  - uid: 'service1'
+    id: '0x5001'
+    label:
+      text: 'Radio One'
+
+components:
+  - uid: 'comp1'
+    service_id: '0x5001'
+    subchannel_id: 0
+```
+
+### 3. Run Multiplexer
+
+```bash
+# Generate ETI file
+python -m dabmux.cli -c config.yaml -o output.eti
+
+# Or stream over network with EDI + PFT
+python -m dabmux.cli -c config.yaml --edi udp://239.1.2.3:12000 --pft
+```
+
+**📚 [Full Documentation](https://python-dabmux.readthedocs.io)** | **🚀 [Tutorials](docs/tutorials/index.md)**
+
+## Documentation
+
+**📚 [Complete Documentation](docs/index.md)** - Comprehensive guides, tutorials, and API reference
+
+- **[Getting Started](docs/getting-started/index.md)** - Installation and first multiplex
+- **[User Guide](docs/user-guide/index.md)** - CLI reference, configuration, inputs/outputs
+- **[Tutorials](docs/tutorials/index.md)** - Step-by-step guides for common scenarios
+- **[Architecture](docs/architecture/index.md)** - System design with Mermaid diagrams
+- **[Troubleshooting](docs/troubleshooting/index.md)** - Common errors and solutions
+- **[FAQ](docs/faq.md)** - Frequently asked questions
+
 ## Testing
 
 ```bash
 # Run all tests with coverage
-pytest tests/unit -v --cov=dabmux
+pytest --cov=dabmux --cov-report=term-missing
 
-# Verify Phase 0 milestone
-python verify_phase0.py
-
-# Verify Phase 1 milestone
-python verify_phase1.py
-
-# Verify Phase 2 milestone
-python verify_phase2.py
-
-# Verify Phase 3 milestone
-python verify_phase3.py
-
-# Verify Phase 4 milestone
-python verify_phase4.py
-
-# Verify Phase 5 milestone
-python verify_phase5.py
-
-# Verify Phase 6 milestone
-python verify_phase6.py
-```
-
-## Usage
-
-```bash
-# Run the multiplexer with a configuration file
-python -m dabmux.cli -c examples/basic_config.yaml -o output.eti
-
-# Output EDI over UDP
-python -m dabmux.cli -c examples/multi_service_config.yaml --edi udp://239.1.2.3:12000
-
-# Continuous multiplexing with PFT
-python -m dabmux.cli -c config.yaml --edi udp://239.1.2.3:12000 --pft --continuous
+# Run specific test categories
+pytest tests/unit/core -v        # Core ETI tests
+pytest tests/unit/fig -v         # FIG generation tests
+pytest tests/unit/edi -v         # EDI protocol tests
 ```
 
 ## Project Structure

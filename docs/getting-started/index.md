@@ -4,10 +4,21 @@ Welcome! This guide will help you get python-dabmux installed and create your fi
 
 ## What You'll Learn
 
-This getting started guide covers:
+This getting started guide offers two paths:
+
+### ⚡ Fast Track (5 minutes)
+
+**[Quick Setup: Audio to Stream](quick-setup.md)** - Minimal steps to get a multiplex running NOW
+
+- Create audio file
+- Write 10-line config
+- Run and verify
+- Perfect for: "I just want to see it work!"
+
+### 📚 Detailed Path (15 minutes)
 
 1. **[Installation](installation.md)**: Install python-dabmux and its dependencies
-2. **[Your First Multiplex](first-multiplex.md)**: Create and run a basic DAB ensemble
+2. **[Your First Multiplex](first-multiplex.md)**: Create and run a basic DAB ensemble with explanations
 3. **[Basic Concepts](basic-concepts.md)**: Understand DAB terminology and architecture
 
 ## Prerequisites

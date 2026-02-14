@@ -32,20 +32,24 @@ All core functionality has been implemented through 6 development phases:
 
 ## Quick Start
 
-Get started with python-dabmux in under 15 minutes:
+Get started with python-dabmux:
+
+### ⚡ 5-Minute Setup
+
+**From audio to multiplexed stream in 3 commands:**
 
 ```bash
-# Install
-pip install python-dabmux
+# 1. Encode audio
+ffmpeg -i music.mp3 -c:a mp2 -ar 48000 -b:a 128k audio.mp2
 
-# Create your first multiplex
-python -m dabmux.cli -c config.yaml -o output.eti
+# 2. Create config.yaml (see quick setup guide)
 
-# Or stream over the network with EDI
-python -m dabmux.cli -c config.yaml --edi udp://239.1.2.3:12000 --pft
+# 3. Run multiplexer
+python -m dabmux.cli -c config.yaml -o output.eti --continuous
 ```
 
-[Get Started →](getting-started/index.md){ .md-button .md-button--primary }
+[**⚡ Quick Setup Guide →**](getting-started/quick-setup.md){ .md-button .md-button--primary }
+[Full Tutorial →](getting-started/first-multiplex.md){ .md-button }
 
 ## Documentation Structure
 

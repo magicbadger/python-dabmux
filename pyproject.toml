@@ -28,6 +28,9 @@ docs = [
     "pymdown-extensions>=10.0",
 ]
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"

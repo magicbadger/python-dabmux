@@ -13,7 +13,24 @@ pip install -e ".[dev]"
 
 ## Quick Start
 
-Create your first DAB multiplex in 3 steps:
+### Super Simple (1 Command!)
+
+Use the simple script to loop any audio file:
+
+```bash
+# Loop an MP3 file as a DAB service
+python simple_loop.py yourmusic.mp3
+
+# Custom station name and bitrate
+python simple_loop.py yourmusic.mp3 --station-name "Rock FM" --bitrate 160
+
+# Stream to network modulator
+python simple_loop.py yourmusic.mp3 --edi udp://192.168.1.100:12000
+```
+
+See [SIMPLE_EXAMPLES.md](SIMPLE_EXAMPLES.md) for more examples and options.
+
+### Manual Setup (3 steps)
 
 ### 1. Prepare Audio
 

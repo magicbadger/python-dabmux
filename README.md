@@ -80,13 +80,37 @@ python -m dabmux.cli -c config.yaml -o output.eti
 python -m dabmux.cli -c config.yaml --edi udp://239.1.2.3:12000 --pft
 ```
 
-**📚 [Full Documentation](https://python-dabmux.readthedocs.io)** | **🚀 [Tutorials](docs/tutorials/index.md)**
+### DAB+ Quick Start (HE-AAC Audio)
+
+DAB+ provides better audio quality at lower bitrates using HE-AAC encoding:
+
+```bash
+# 1. Encode audio to HE-AAC (requires libfdk_aac)
+ffmpeg -i input.mp3 -c:a libfdk_aac -profile:a aac_he_v2 -b:a 48k -ar 48000 music.aac
+
+# 2. Use a DAB+ configuration (see examples/simple_dabplus.yaml)
+# Key difference: type: 'dabplus' and lower bitrate
+
+# 3. Generate ETI
+python -m dabmux.cli -c examples/simple_dabplus.yaml -o output.eti -f raw -n 100
+
+# 4. Verify with dablin (should show "DAB+" not "DAB")
+dablin -s 0x5001 < output.eti
+```
+
+**Configuration Examples:**
+- `examples/simple_dabplus.yaml` - Single DAB+ service
+- `examples/dabplus_config.yaml` - Complete DAB+ configuration with comments
+- `examples/mixed_dab_dabplus.yaml` - Mixed DAB and DAB+ ensemble
+
+**📚 [Full Documentation](https://python-dabmux.readthedocs.io)** | **🚀 [Tutorials](docs/tutorials/index.md)** | **🎵 [Audio Encoding Guide](AUDIO_ENCODING_GUIDE.md)**
 
 ## Documentation
 
 **📚 [Complete Documentation](docs/index.md)** - Comprehensive guides, tutorials, and API reference
 
 - **[Getting Started](docs/getting-started/index.md)** - Installation and first multiplex
+- **[Audio Encoding Guide](AUDIO_ENCODING_GUIDE.md)** - Complete guide for DAB/DAB+ audio encoding with ffmpeg
 - **[User Guide](docs/user-guide/index.md)** - CLI reference, configuration, inputs/outputs
 - **[Tutorials](docs/tutorials/index.md)** - Step-by-step guides for common scenarios
 - **[Architecture](docs/architecture/index.md)** - System design with Mermaid diagrams

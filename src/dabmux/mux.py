@@ -93,6 +93,13 @@ class DabMultiplexer:
         frame.fc.fct = self.frame_count & 0xFF
         frame.fc.nst = len(self.ensemble.subchannels)
 
+        # Alternate FSYNC between frames (required by ETSI EN 300 799)
+        # Even frames: 0x073AB6, Odd frames: 0xF8C549
+        if self.frame_count % 2 == 0:
+            frame.sync.fsync = 0x073AB6
+        else:
+            frame.sync.fsync = 0xF8C549
+
         # Generate FIC data using FIC encoder (Phase 2)
         fic_data = self.fic_encoder.encode_fic(self.frame_count)
         frame.fic_data = fic_data
@@ -106,10 +113,15 @@ class DabMultiplexer:
 
             # Calculate subchannel size in bytes
             # For DAB: bitrate * 3 bytes (bitrate in kbps, 24ms frame = 3 bytes per kbps)
-            subchannel_size = subchannel.bitrate * 3
+            # For DAB+ with FEC: use actual frame size from input (includes RS overhead)
+            input_source = self.inputs.get(subchannel.uid)
+            if input_source and hasattr(input_source, 'get_frame_size'):
+                frame_size = input_source.get_frame_size()
+                subchannel_size = frame_size if frame_size > 0 else subchannel.bitrate * 3
+            else:
+                subchannel_size = subchannel.bitrate * 3
 
             # Read data from input if available
-            input_source = self.inputs.get(subchannel.uid)
             if input_source and input_source.is_open:
                 try:
                     data = input_source.read_frame(subchannel_size)
@@ -142,7 +154,7 @@ class DabMultiplexer:
             stc = EtiSTC(
                 scid=subchannel.id,
                 start_address=subchannel.start_address,
-                tpl=subchannel.protection.to_tpl(),
+                tpl=subchannel.protection.to_tpl(subchannel.bitrate),
                 stl=stl
             )
             frame.stc_headers.append(stc)
@@ -151,9 +163,12 @@ class DabMultiplexer:
         frame.subchannel_data = bytes(mst_data)
 
         # Calculate frame length
-        # Frame length in 32-bit words = FC + STC headers + EOH + FIC + subchannel data
-        # FC (1 word) + NST*STC (NST words) + EOH (1 word) = NST + 2 words for header
-        header_words = 1 + len(self.ensemble.subchannels) + 1
+        # Per ETSI EN 300 799, FL (Frame Length) includes: STC + FIC + MST + EOF
+        # It does NOT include FC or EOH (these come before FL starts counting)
+        # This matches dablin's formula: FIC+MST = (FL - NST - 1) * 4
+
+        # STC headers in words
+        stc_words = len(self.ensemble.subchannels)
 
         # FIC size in words (96 bytes = 24 words for Mode I)
         fic_words = len(fic_data) // 4
@@ -161,20 +176,29 @@ class DabMultiplexer:
         # Subchannel data in words
         mst_words = (len(mst_data) + 3) // 4  # Round up
 
-        frame_length = header_words + fic_words + mst_words
+        # EOF is 1 word (4 bytes)
+        eof_words = 1
+
+        # FL = STC + FIC + MST + EOF
+        frame_length = stc_words + fic_words + mst_words + eof_words
         frame.fc.set_frame_length(frame_length)
 
-        # Calculate CRC for FC+STC+EOH section
+        # Calculate CRC for FC+STC+MNSC section
+        # CRC covers: FC, all STCs, and MNSC (but not the CRC itself)
         header_data = bytearray()
         header_data.extend(frame.fc.pack())
         for stc in frame.stc_headers:
             header_data.extend(stc.pack())
+        # Add MNSC (2 bytes) to CRC calculation
+        header_data.extend(frame.eoh.mnsc.to_bytes(2, 'big'))
 
-        frame.eoh.crc = crc16(bytes(header_data))
+        # EOH CRC: XOR with 0xFFFF per ETSI EN 300 799
+        frame.eoh.crc = crc16(bytes(header_data)) ^ 0xFFFF
 
         # Calculate CRC for MST (FIC + subchannel data)
+        # EOF CRC: XOR with 0xFFFF per ETSI EN 300 799
         mst_crc_data = frame.fic_data + frame.subchannel_data
-        frame.eof.crc = crc16(mst_crc_data)
+        frame.eof.crc = crc16(mst_crc_data) ^ 0xFFFF
 
         self.frame_count += 1
         return frame

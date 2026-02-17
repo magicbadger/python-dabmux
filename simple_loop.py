@@ -149,7 +149,7 @@ def create_config(
     return config
 
 
-def run_multiplexer(config_file: Path, output_eti: Path = None, edi_url: str = None):
+def run_multiplexer(config_file: Path, output_eti: Path = None, edi_url: str = None, format: str = 'raw'):
     """
     Run the DAB multiplexer.
 
@@ -157,6 +157,7 @@ def run_multiplexer(config_file: Path, output_eti: Path = None, edi_url: str = N
         config_file: Path to configuration YAML file
         output_eti: Output ETI file path (optional)
         edi_url: EDI output URL (optional)
+        format: ETI file format - 'raw', 'framed', or 'streamed' (default: raw)
     """
     cmd = [
         sys.executable, '-m', 'dabmux.cli',
@@ -173,6 +174,10 @@ def run_multiplexer(config_file: Path, output_eti: Path = None, edi_url: str = N
     if not output_eti and not edi_url:
         # Default to output.eti if nothing specified
         cmd.extend(['-o', 'output.eti'])
+
+    # Add format flag (raw is compatible with etisnoop/dablin)
+    if output_eti or (not output_eti and not edi_url):
+        cmd.extend(['-f', format])
 
     print(f"\n{'='*60}")
     print("Starting DAB Multiplexer")
@@ -214,6 +219,9 @@ Examples:
     --ensemble-name "My DAB" \\
     --bitrate 160 \\
     --output stream.eti
+
+  # Use framed format (for internal use)
+  python simple_loop.py music.mp3 --format framed
         """
     )
 
@@ -261,6 +269,14 @@ Examples:
         '--keep-encoded',
         action='store_true',
         help='Keep encoded .mp2 file after exit'
+    )
+
+    parser.add_argument(
+        '-f', '--format',
+        type=str,
+        default='raw',
+        choices=['raw', 'framed', 'streamed'],
+        help='ETI file format (default: raw, compatible with etisnoop/dablin)'
     )
 
     args = parser.parse_args()
@@ -317,10 +333,11 @@ Examples:
             print(f"Output ETI:      {args.output}")
         if args.edi:
             print(f"EDI streaming:   {args.edi}")
+        print(f"Format:          {args.format}")
         print(f"{'='*60}\n")
 
         # Run multiplexer
-        run_multiplexer(config_file, args.output, args.edi)
+        run_multiplexer(config_file, args.output, args.edi, args.format)
 
         if args.keep_encoded:
             print(f"\n✓ Encoded audio saved: {encoded_audio}")

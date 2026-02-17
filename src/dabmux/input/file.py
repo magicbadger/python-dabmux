@@ -191,6 +191,7 @@ class MPEGFileInput(FileInput):
 
     Reads MPEG frames, validates headers, and provides data for DAB audio streams.
     Supports MPEG Layer II audio (MP2) commonly used in DAB.
+    Automatically adds MPEG CRC protection for DAB compliance (ETSI EN 300 401).
     """
 
     def __init__(self) -> None:
@@ -200,6 +201,7 @@ class MPEGFileInput(FileInput):
         self._parser = MpegFrameParser()
         self._read_buffer: bytearray = bytearray()
         self._frame_count: int = 0
+        self._crc_added_count: int = 0
 
     def read_frame(self, size: int) -> bytes:
         """
@@ -254,6 +256,11 @@ class MPEGFileInput(FileInput):
         self._read_buffer = self._read_buffer[frame_length:]
 
         self._frame_count += 1
+
+        # Note: MPEG CRC protection is required by DAB standard (ETSI EN 300 401)
+        # but cannot be retrofitted to existing non-CRC frames without re-encoding.
+        # Users should encode input files with CRC protection enabled, or accept
+        # cosmetic "(CRC)" warnings from players like dablin (audio still works).
 
         # Log frame info occasionally
         if self._frame_count % 100 == 0:
@@ -439,3 +446,184 @@ class PacketFileInput(FileInput):
                 break
 
         return bytes(output[:size])
+
+
+class AACFileInput(FileInput):
+    """
+    AAC file input with frame parsing.
+
+    Reads AAC frames in ADTS format for DAB+ streams.
+    Supports HE-AAC v2 (AAC-LC + SBR + PS) as required by ETSI TS 102 563.
+    """
+
+    def __init__(self) -> None:
+        """Initialize AAC file input."""
+        super().__init__()
+        from dabmux.audio.aac_parser import AACFrameParser
+        from dabmux.audio.aac_superframe import AacSuperframeBuffer
+
+        self._parser = AACFrameParser()
+        self._read_buffer: bytearray = bytearray()
+        self._frame_count: int = 0
+        self._superframe_buffer: Optional[AacSuperframeBuffer] = None
+        self._current_au_index: int = 0  # Tracks which AU (0-4) to return next
+
+    def open(self, name: str) -> None:
+        """
+        Open and validate AAC file.
+
+        Args:
+            name: Path to the AAC file
+
+        Raises:
+            RuntimeError: If file cannot be opened
+            ValueError: If file format is invalid for DAB+
+        """
+        super().open(name)
+
+        # Validate format for DAB+ if file is loaded
+        if self._load_entire_file and len(self._file_contents) > 0:
+            valid, error = self._parser.validate_for_dab_plus(
+                self._file_contents, self._bitrate
+            )
+            if not valid:
+                raise ValueError(f"Invalid AAC file for DAB+: {error}")
+
+        # Initialize superframe buffer if bitrate is set
+        self._initialize_superframe_buffer()
+
+    def _initialize_superframe_buffer(self) -> None:
+        """Initialize superframe buffer with configured bitrate."""
+        from dabmux.audio.aac_superframe import AacSuperframeBuffer
+
+        if self._bitrate > 0 and self._superframe_buffer is None:
+            self._superframe_buffer = AacSuperframeBuffer(self._bitrate)
+
+    def set_bitrate(self, bitrate: int) -> int:
+        """
+        Set the bitrate and initialize superframe buffer.
+
+        Args:
+            bitrate: Bitrate in kbps
+
+        Returns:
+            Actual bitrate set
+        """
+        result = super().set_bitrate(bitrate)
+        self._initialize_superframe_buffer()
+        return result
+
+    def get_frame_size(self) -> int:
+        """
+        Get the actual frame size including FEC protection.
+
+        For DAB+, returns the protected AU size which includes Reed-Solomon
+        error correction overhead (e.g., 168 bytes for 48 kbps with FEC).
+
+        Returns:
+            Protected AU size in bytes
+        """
+        if self._superframe_buffer:
+            return self._superframe_buffer.protected_au_size
+        return self._bitrate * 3 if self._bitrate else 0
+
+    def read_frame(self, size: int) -> bytes:
+        """
+        Read AU-sized data from superframe buffer.
+
+        New logic:
+        1. Fill superframe buffer with complete AAC frames
+        2. Build superframe when starting new cycle (AU index 0)
+        3. Return current AU data
+        4. Advance AU index (0→1→2→3→4→0)
+
+        Args:
+            size: Expected frame size in bytes (ignored, uses protected_au_size)
+
+        Returns:
+            AU data from superframe buffer (protected_au_size bytes)
+        """
+        if not self._is_open:
+            return bytes(self._superframe_buffer.protected_au_size if self._superframe_buffer else size)
+
+        # Initialize buffer if needed
+        if self._superframe_buffer is None:
+            if self._bitrate > 0:
+                self._initialize_superframe_buffer()
+            else:
+                logger.warning("AAC input: bitrate not set, returning silence")
+                return bytes(size)
+
+        # Override size with protected AU size (FEC changes the size)
+        actual_size = self._superframe_buffer.protected_au_size
+
+        # Fill buffer with AAC frames
+        while self._superframe_buffer.needs_frames():
+            # Refill read buffer if low
+            if len(self._read_buffer) < 2000:
+                chunk = self._read_from_file(4096)
+                if chunk:
+                    self._read_buffer.extend(chunk)
+                elif len(self._read_buffer) == 0:
+                    # EOF and buffer empty
+                    if self._load_entire_file:
+                        # Loop back to beginning
+                        self.rewind()
+                        chunk = self._read_from_file(4096)
+                        if chunk:
+                            self._read_buffer.extend(chunk)
+
+                    if len(self._read_buffer) == 0:
+                        # Still no data after rewind attempt
+                        logger.warning("AAC input underrun - no more data")
+                        break
+
+            # Parse one AAC frame
+            result = self._parser.read_frame(bytes(self._read_buffer))
+
+            if result is None:
+                # No valid frame found, skip first byte and try again
+                if len(self._read_buffer) > 0:
+                    self._read_buffer.pop(0)
+                continue
+
+            header, frame_data = result
+            frame_length = len(frame_data)
+
+            # Remove consumed data from buffer
+            self._read_buffer = self._read_buffer[frame_length:]
+
+            # Add complete frame to superframe buffer
+            self._superframe_buffer.add_frame(frame_data)
+            self._frame_count += 1
+
+            # Log frame info occasionally
+            if self._frame_count % 100 == 0:
+                logger.debug(
+                    "AAC frame added to buffer",
+                    count=self._frame_count,
+                    sample_rate=header.sample_rate,
+                    channels=header.channels,
+                    length=frame_length,
+                )
+
+        # Build superframe if starting new cycle
+        if self._current_au_index == 0:
+            self._superframe_buffer.build_superframe()
+
+        # Get current AU from superframe
+        au_data = self._superframe_buffer.get_au(self._current_au_index)
+
+        # Advance to next AU (wraps 0→1→2→3→4→0)
+        self._current_au_index = (self._current_au_index + 1) % 5
+
+        # Log size mismatch warnings
+        if len(au_data) != actual_size:
+            logger.warning(
+                "AU size mismatch",
+                expected=actual_size,
+                got=len(au_data),
+                au_index=self._current_au_index - 1,
+            )
+
+        return au_data

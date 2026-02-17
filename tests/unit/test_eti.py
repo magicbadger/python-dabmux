@@ -20,7 +20,7 @@ class TestEtiSync:
         """Test default SYNC values."""
         sync = EtiSync()
         assert sync.err == 0xFF
-        assert sync.fsync == 0x49C5F8
+        assert sync.fsync == 0x073AB6
 
     def test_pack_size(self) -> None:
         """SYNC should pack to exactly 4 bytes."""
@@ -30,17 +30,17 @@ class TestEtiSync:
 
     def test_pack_default(self) -> None:
         """Test packing with default values."""
-        sync = EtiSync(err=0xFF, fsync=0x49C5F8)
+        sync = EtiSync(err=0xFF, fsync=0x073AB6)
         data = sync.pack()
-        # Little-endian: err in byte 0, fsync in bytes 1-3
-        assert data[0] == 0xFF
-        assert data[1] == 0xF8
-        assert data[2] == 0xC5
-        assert data[3] == 0x49
+        # Big-endian per ETSI EN 300 799: ERR byte, then FSYNC (MSB first)
+        assert data[0] == 0xFF  # ERR
+        assert data[1] == 0x07  # FSYNC MSB
+        assert data[2] == 0x3A  # FSYNC middle
+        assert data[3] == 0xB6  # FSYNC LSB
 
     def test_pack_unpack_roundtrip(self) -> None:
         """Pack and unpack should be inverse operations."""
-        sync = EtiSync(err=0xAA, fsync=0x49C5F8)
+        sync = EtiSync(err=0xAA, fsync=0x073AB6)
         data = sync.pack()
         unpacked = EtiSync.unpack(data)
         assert unpacked.err == sync.err
@@ -48,10 +48,11 @@ class TestEtiSync:
 
     def test_unpack_correct_values(self) -> None:
         """Test unpacking known byte sequence."""
-        data = b'\xFF\xF8\xC5\x49'
+        # Big-endian per ETSI EN 300 799: ERR byte, then FSYNC (MSB first)
+        data = b'\xFF\x07\x3A\xB6'
         sync = EtiSync.unpack(data)
         assert sync.err == 0xFF
-        assert sync.fsync == 0x49C5F8
+        assert sync.fsync == 0x073AB6
 
 
 class TestEtiFC:
@@ -185,7 +186,7 @@ class TestEtiEOF:
         """Test default EOF values."""
         eof = EtiEOF()
         assert eof.crc == 0
-        assert eof.rfu == 0xFFFF
+        assert eof.rfu == 0x0000
 
     def test_pack_size(self) -> None:
         """EOF should pack to exactly 4 bytes."""
@@ -280,7 +281,7 @@ class TestEtiFrame:
         """Test creating an empty frame."""
         frame = EtiFrame.create_empty()
 
-        assert frame.sync.fsync == 0x49C5F8
+        assert frame.sync.fsync == 0x073AB6
         assert frame.fc.nst == 0
         assert frame.fc.ficf == 1
         assert len(frame.stc_headers) == 0
@@ -320,9 +321,9 @@ class TestEtiFrame:
         frame = EtiFrame.create_empty()
         data = frame.pack()
 
-        # Verify SYNC at start
+        # Verify SYNC at start (big-endian per ETSI EN 300 799)
         assert data[0] == 0xFF  # ERR byte
-        assert data[1:4] == b'\xF8\xC5\x49'  # FSYNC
+        assert data[1:4] == b'\x07\x3A\xB6'  # FSYNC (MSB first)
 
         # Verify FC after SYNC
         # FCT should be 0 (byte 4)

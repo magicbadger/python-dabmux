@@ -202,6 +202,15 @@ If using `--edi`:
 
 ## Audio Encoding Tips
 
+**📖 For complete encoding instructions, see [AUDIO_ENCODING_GUIDE.md](AUDIO_ENCODING_GUIDE.md)**
+
+This includes:
+- Installing ffmpeg with libfdk_aac for DAB+
+- HE-AAC v2 encoding for better quality at lower bitrates
+- Bitrate recommendations for different use cases
+- Quality comparison between DAB and DAB+
+- Troubleshooting encoding issues
+
 ### DAB (MPEG Layer II)
 
 **Best quality:**

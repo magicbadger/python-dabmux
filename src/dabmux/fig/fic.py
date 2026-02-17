@@ -122,7 +122,8 @@ class FICEncoder:
             bytes_written = self.carousel.fill_fib(fib_data, max_size=30)
 
             # Calculate CRC for FIB (CRC-16 over 30 bytes of data)
-            crc = crc16(bytes(fib_data[:30]))
+            # Note: DAB standard requires XOR with 0xFFFF (inversion) after CRC
+            crc = crc16(bytes(fib_data[:30])) ^ 0xFFFF
 
             # Append CRC (big-endian)
             fib_data[30] = (crc >> 8) & 0xFF

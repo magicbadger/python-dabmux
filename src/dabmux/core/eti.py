@@ -17,23 +17,24 @@ class EtiSync:
 
     Layout (32 bits):
         ERR:    8 bits  - Error indicator
-        FSYNC: 24 bits  - Frame sync word (constant 0x49C5F8)
+        FSYNC: 24 bits  - Frame sync word (alternates: 0x073AB6 / 0xF8C549)
     """
     err: int = 0xFF
-    fsync: int = 0x49C5F8  # Constant sync word
+    fsync: int = 0x073AB6  # Alternates between 0x073AB6 and 0xF8C549 per frame (ETSI EN 300 799)
 
     def pack(self) -> bytes:
-        """Pack to 4 bytes (little-endian)."""
-        # Combine: fsync (bits 8-31) | err (bits 0-7)
-        value = (self.fsync << 8) | self.err
-        return struct.pack('<I', value)
+        """Pack to 4 bytes (big-endian per ETSI EN 300 799)."""
+        # ERR is the first byte (MSB), FSYNC is the next 3 bytes
+        # Combine: err (bits 24-31) | fsync (bits 0-23)
+        value = (self.err << 24) | self.fsync
+        return struct.pack('>I', value)
 
     @classmethod
     def unpack(cls, data: bytes) -> 'EtiSync':
-        """Unpack from 4 bytes."""
-        value = struct.unpack('<I', data[:4])[0]
-        err = value & 0xFF
-        fsync = (value >> 8) & 0xFFFFFF
+        """Unpack from 4 bytes (big-endian per ETSI EN 300 799)."""
+        value = struct.unpack('>I', data[:4])[0]
+        err = (value >> 24) & 0xFF
+        fsync = value & 0xFFFFFF
         return cls(err=err, fsync=fsync)
 
 
@@ -205,7 +206,7 @@ class EtiEOF:
         RFU: 16 bits - Reserved for future use
     """
     crc: int = 0
-    rfu: int = 0xFFFF
+    rfu: int = 0x0000  # Reserved for future use, set to 0
 
     def pack(self) -> bytes:
         """Pack to 4 bytes (big-endian)."""
@@ -428,7 +429,7 @@ class EtiFrame:
         fc = EtiFC(fct=0, nst=0, ficf=1, mid=mode, fp=0, fl=0)
         eoh = EtiEOH(mnsc=0, crc=0)
         fic_data = bytes(96)  # Empty FIC (96 bytes when FICF=1)
-        eof = EtiEOF(crc=0, rfu=0xFFFF)
+        eof = EtiEOF(crc=0, rfu=0x0000)
         tist = EtiTIST(tist=0) if with_tist else None
 
         return cls(

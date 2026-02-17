@@ -44,23 +44,54 @@ BITRATE_TABLE = [
     384, 384, 384
 ]
 
-# Size table for subchannels (in Capacity Units)
-# Indexed by bitrate and protection level
-# This is a simplified version - full implementation in later phases
-SUB_CHANNEL_SIZE_TABLE = {
-    # Format: (bitrate, protection_level): size_in_CU
-    (32, 5): 27,
-    (32, 4): 24,
-    (32, 3): 21,
-    (32, 2): 18,
-    (32, 1): 16,
-    (48, 5): 42,
-    (48, 4): 36,
-    (48, 3): 30,
-    (48, 2): 27,
-    (48, 1): 24,
-    # Add more entries as needed
+# UEP (Unequal Error Protection) table index mapping
+# Based on ETSI EN 300 401 and ODR-DabMux tables
+# Key: (bitrate_kbps, protection_level)
+# Value: table_index for Sub_Channel_SizeTable lookup
+# Note: Protection level in DAB uses 0-4 (not 1-5)
+UEP_TABLE_INDEX = {
+    # 32 kbps
+    (32, 4): 0, (32, 3): 1, (32, 2): 2, (32, 1): 3, (32, 0): 4,
+    # 48 kbps
+    (48, 4): 5, (48, 3): 6, (48, 2): 7, (48, 1): 8, (48, 0): 9,
+    # 56 kbps
+    (56, 4): 10, (56, 3): 11, (56, 2): 12, (56, 1): 13,
+    # 64 kbps
+    (64, 4): 14, (64, 3): 15, (64, 2): 16, (64, 1): 17, (64, 0): 18,
+    # 80 kbps
+    (80, 4): 19, (80, 3): 20, (80, 2): 21, (80, 1): 22, (80, 0): 23,
+    # 96 kbps
+    (96, 4): 24, (96, 3): 25, (96, 2): 26, (96, 1): 27, (96, 0): 28,
+    # 112 kbps
+    (112, 4): 29, (112, 3): 30, (112, 2): 31, (112, 1): 32,
+    # 128 kbps
+    (128, 4): 33, (128, 3): 34, (128, 2): 35, (128, 1): 36, (128, 0): 37,
+    # 160 kbps
+    (160, 4): 38, (160, 3): 39, (160, 2): 40, (160, 1): 41, (160, 0): 42,
+    # 192 kbps
+    (192, 4): 43, (192, 3): 44, (192, 2): 45, (192, 1): 46, (192, 0): 47,
+    # 224 kbps
+    (224, 4): 48, (224, 3): 49, (224, 2): 50, (224, 1): 51, (224, 0): 52,
+    # 256 kbps
+    (256, 4): 53, (256, 3): 54, (256, 2): 55, (256, 1): 56, (256, 0): 57,
+    # 320 kbps
+    (320, 4): 58, (320, 3): 59, (320, 1): 60,
+    # 384 kbps
+    (384, 4): 61, (384, 2): 62, (384, 0): 63,
 }
+
+# Sub_Channel_SizeTable from ETSI EN 300 401 / ODR-DabMux
+# Index is the UEP table index, value is size in Capacity Units (CU)
+SUB_CHANNEL_SIZE_TABLE_CU = [
+    16, 21, 24, 29, 35, 24, 29, 35,
+    42, 52, 29, 35, 42, 52, 32, 42,
+    48, 58, 70, 40, 52, 58, 70, 84,
+    48, 58, 70, 84, 104, 58, 70, 84,
+    104, 64, 84, 96, 116, 140, 80, 104,
+    116, 140, 168, 96, 116, 140, 168, 208,
+    116, 140, 168, 208, 232, 128, 168, 192,
+    232, 280, 160, 208, 280, 192, 280, 416
+]
 
 
 class SubchannelType(Enum):
@@ -149,15 +180,29 @@ class DabProtection:
     uep: Optional[DabProtectionUEP] = None
     eep: Optional[DabProtectionEEP] = None
 
-    def to_tpl(self) -> int:
+    def to_tpl(self, bitrate: int) -> int:
         """
         Convert to TPL (Type and Protection Level) field.
 
         According to ETSI EN 300 799 5.4.1.2.
-        For Phase 0, this is a stub.
+        For UEP, returns the table index from UEP_TABLE_INDEX.
+        For EEP, encodes profile and level (not yet implemented).
+
+        Args:
+            bitrate: Subchannel bitrate in kbps
+
+        Returns:
+            6-bit TPL value
         """
-        # Simplified: just return level for now
-        return self.level & 0x3F
+        if self.form == ProtectionForm.UEP:
+            # Look up UEP table index
+            key = (bitrate, self.level)
+            table_idx = UEP_TABLE_INDEX.get(key, 0)
+            return table_idx & 0x3F
+        else:
+            # EEP encoding (not yet fully implemented)
+            # Format: 1 bit (1=EEP) + 2 bits profile + 3 bits level
+            return 0x20 | (self.level & 0x1F)
 
 
 @dataclass
@@ -179,16 +224,21 @@ class DabSubchannel:
         """
         Calculate subchannel size in Capacity Units (CU).
 
-        For Phase 0, this uses a simplified lookup table.
-        Full implementation in Phase 3 will use proper DAB tables.
+        Uses the UEP table index to look up the size in SUB_CHANNEL_SIZE_TABLE_CU.
         """
-        key = (self.bitrate, self.protection.level)
-        return SUB_CHANNEL_SIZE_TABLE.get(key, 0)
+        if self.protection.form == ProtectionForm.UEP:
+            # Get UEP table index
+            key = (self.bitrate, self.protection.level)
+            table_idx = UEP_TABLE_INDEX.get(key, 0)
+            # Look up size in CU
+            if 0 <= table_idx < len(SUB_CHANNEL_SIZE_TABLE_CU):
+                return SUB_CHANNEL_SIZE_TABLE_CU[table_idx]
+        return 0
 
     def get_size_byte(self) -> int:
         """Calculate subchannel size in bytes."""
-        # Each CU is 8 bytes in Mode I
-        return self.get_size_cu() * 8
+        # Each CU is 4 bytes (32 bits / 1 word) in all modes
+        return self.get_size_cu() * 4
 
     def validate(self) -> bool:
         """Validate subchannel configuration."""

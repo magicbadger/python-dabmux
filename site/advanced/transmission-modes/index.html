@@ -1,0 +1,2764 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="A pure Python implementation of a DAB/DAB+ multiplexer" name="description"/>
+<meta content="python-dabmux contributors" name="author"/>
+<link href="https://github.com/python-dabmux/python-dabmux/advanced/transmission-modes/" rel="canonical"/>
+<link href="../reed-solomon/" rel="prev"/>
+<link href="../extending/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.1" name="generator"/>
+<title>Transmission Modes - Python DAB Multiplexer</title>
+<link href="../../assets/stylesheets/main.484c7ddc.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="indigo" data-md-color-primary="indigo" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#transmission-modes">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="Python DAB Multiplexer" class="md-header__button md-logo" data-md-component="logo" href="../.." title="Python DAB Multiplexer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            Python DAB Multiplexer
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Transmission Modes
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="Switch to dark mode" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme: light)" data-md-color-primary="indigo" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="Switch to dark mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+<input aria-label="Switch to light mode" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-primary="indigo" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="Switch to light mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+<div class="md-search__suggest" data-md-component="search-suggest"></div>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/python-dabmux/python-dabmux" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+</div>
+<div class="md-source__repository">
+    python-dabmux
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../..">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../getting-started/">
+          
+  
+  
+  Getting Started
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../user-guide/">
+          
+  
+  
+  User Guide
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../architecture/">
+          
+  
+  
+  Architecture
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../tutorials/">
+          
+  
+  
+  Tutorials
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../api-reference/">
+          
+  
+  
+  API Reference
+
+        </a>
+</li>
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../">
+          
+  
+  
+  Advanced Topics
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../troubleshooting/">
+          
+  
+  
+  Troubleshooting
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../faq/">
+        
+  
+  
+    
+  
+  FAQ
+
+      </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../standards/">
+          
+  
+  
+  Standards
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../development/">
+          
+  
+  
+  Development
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../glossary/">
+        
+  
+  
+    
+  
+  Glossary
+
+      </a>
+</li>
+</ul>
+</div>
+</nav>
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="Python DAB Multiplexer" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="Python DAB Multiplexer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    Python DAB Multiplexer
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/python-dabmux/python-dabmux" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+</div>
+<div class="md-source__repository">
+    python-dabmux
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../getting-started/">
+<span class="md-ellipsis">
+    
+  
+    Getting Started with python-dabmux
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../getting-started/quick-setup/">
+<span class="md-ellipsis">
+    
+  
+    ⚡ Quick Setup (5 min)
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../getting-started/installation/">
+<span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../getting-started/first-multiplex/">
+<span class="md-ellipsis">
+    
+  
+    Your First Multiplex
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../getting-started/basic-concepts/">
+<span class="md-ellipsis">
+    
+  
+    Basic Concepts
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/">
+<span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/cli-reference/">
+<span class="md-ellipsis">
+    
+  
+    CLI Reference
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3_3" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_3_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_3_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/configuration/">
+<span class="md-ellipsis">
+    
+  
+    Configuration Reference
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/configuration/ensemble/">
+<span class="md-ellipsis">
+    
+  
+    Ensemble Parameters
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/configuration/services/">
+<span class="md-ellipsis">
+    
+  
+    Services
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/configuration/subchannels/">
+<span class="md-ellipsis">
+    
+  
+    Subchannels
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/configuration/protection/">
+<span class="md-ellipsis">
+    
+  
+    Protection Levels
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/configuration/examples/">
+<span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Inputs
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_3_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Inputs
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/inputs/">
+<span class="md-ellipsis">
+    
+  
+    Input Sources
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/inputs/file-inputs/">
+<span class="md-ellipsis">
+    
+  
+    File Inputs
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/inputs/network-inputs/">
+<span class="md-ellipsis">
+    
+  
+    Network Inputs
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/inputs/audio-formats/">
+<span class="md-ellipsis">
+    
+  
+    Audio Formats
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_3_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Outputs
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_3_5_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_3_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Outputs
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/outputs/">
+<span class="md-ellipsis">
+    
+  
+    Output Formats
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/outputs/eti-files/">
+<span class="md-ellipsis">
+    
+  
+    ETI Files
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/outputs/edi-network/">
+<span class="md-ellipsis">
+    
+  
+    EDI Network
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../user-guide/outputs/pft-fragmentation/">
+<span class="md-ellipsis">
+    
+  
+    PFT Fragmentation
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/">
+<span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/system-design/">
+<span class="md-ellipsis">
+    
+  
+    System Design
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/eti-frames/">
+<span class="md-ellipsis">
+    
+  
+    ETI Frames
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/fig-carousel/">
+<span class="md-ellipsis">
+    
+  
+    FIG Carousel
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/data-flow/">
+<span class="md-ellipsis">
+    
+  
+    Data Flow
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/edi-protocol/">
+<span class="md-ellipsis">
+    
+  
+    EDI Protocol
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/configuration-hierarchy/">
+<span class="md-ellipsis">
+    
+  
+    Configuration Hierarchy
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../architecture/modules.md">
+<span class="md-ellipsis">
+    
+  
+    Module Breakdown
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_5" type="checkbox"/>
+<label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_5_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_5">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../tutorials/">
+<span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../tutorials/basic-single-service/">
+<span class="md-ellipsis">
+    
+  
+    Basic Single Service
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../tutorials/multi-service-ensemble/">
+<span class="md-ellipsis">
+    
+  
+    Multi-Service Ensemble
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../tutorials/dab-plus-setup/">
+<span class="md-ellipsis">
+    
+  
+    DAB+ Setup
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../tutorials/network-streaming/">
+<span class="md-ellipsis">
+    
+  
+    Network Streaming
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../tutorials/pft-with-fec/">
+<span class="md-ellipsis">
+    
+  
+    PFT with FEC
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../tutorials/custom-inputs/">
+<span class="md-ellipsis">
+    
+  
+    Custom Inputs
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_6" type="checkbox"/>
+<label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_6_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_6">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api-reference/">
+<span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api-reference/core/">
+<span class="md-ellipsis">
+    
+  
+    Core
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api-reference/mux/">
+<span class="md-ellipsis">
+    
+  
+    Multiplexer
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api-reference/input/">
+<span class="md-ellipsis">
+    
+  
+    Input
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api-reference/output/">
+<span class="md-ellipsis">
+    
+  
+    Output
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api-reference/fig.md">
+<span class="md-ellipsis">
+    
+  
+    FIG Generation
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api-reference/edi.md">
+<span class="md-ellipsis">
+    
+  
+    EDI Protocol
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api-reference/audio.md">
+<span class="md-ellipsis">
+    
+  
+    Audio Parsing
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api-reference/fec.md">
+<span class="md-ellipsis">
+    
+  
+    FEC
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api-reference/utils.md">
+<span class="md-ellipsis">
+    
+  
+    Utilities
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../api-reference/config/">
+<span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_7" type="checkbox"/>
+<label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+<span class="md-ellipsis">
+    
+  
+    Advanced Topics
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_7_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_7">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Advanced Topics
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    
+  
+    Advanced Topics
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../fig-types/">
+<span class="md-ellipsis">
+    
+  
+    FIG Types
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../character-encoding/">
+<span class="md-ellipsis">
+    
+  
+    Character Encoding
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../timestamps-sync/">
+<span class="md-ellipsis">
+    
+  
+    Timestamps &amp; Sync
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../reed-solomon/">
+<span class="md-ellipsis">
+    
+  
+    Reed-Solomon FEC
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    
+  
+    Transmission Modes
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    
+  
+    Transmission Modes
+  
+
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#overview">
+<span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-comparison-table">
+<span class="md-ellipsis">
+      
+        Mode Comparison Table
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-i-most-common">
+<span class="md-ellipsis">
+      
+        Mode I (Most Common)
+      
+    </span>
+</a>
+<nav aria-label="Mode I (Most Common)" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#characteristics">
+<span class="md-ellipsis">
+      
+        Characteristics
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#use-cases">
+<span class="md-ellipsis">
+      
+        Use Cases
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#frame-structure">
+<span class="md-ellipsis">
+      
+        Frame Structure
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#capacity-calculation">
+<span class="md-ellipsis">
+      
+        Capacity Calculation
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#configuration">
+<span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-ii">
+<span class="md-ellipsis">
+      
+        Mode II
+      
+    </span>
+</a>
+<nav aria-label="Mode II" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#characteristics_1">
+<span class="md-ellipsis">
+      
+        Characteristics
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#use-cases_1">
+<span class="md-ellipsis">
+      
+        Use Cases
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#frame-structure_1">
+<span class="md-ellipsis">
+      
+        Frame Structure
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#capacity">
+<span class="md-ellipsis">
+      
+        Capacity
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#configuration_1">
+<span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-iii">
+<span class="md-ellipsis">
+      
+        Mode III
+      
+    </span>
+</a>
+<nav aria-label="Mode III" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#characteristics_2">
+<span class="md-ellipsis">
+      
+        Characteristics
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#use-cases_2">
+<span class="md-ellipsis">
+      
+        Use Cases
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#frame-structure_2">
+<span class="md-ellipsis">
+      
+        Frame Structure
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#capacity_1">
+<span class="md-ellipsis">
+      
+        Capacity
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#configuration_2">
+<span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-iv">
+<span class="md-ellipsis">
+      
+        Mode IV
+      
+    </span>
+</a>
+<nav aria-label="Mode IV" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#characteristics_3">
+<span class="md-ellipsis">
+      
+        Characteristics
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#use-cases_3">
+<span class="md-ellipsis">
+      
+        Use Cases
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#capacity_2">
+<span class="md-ellipsis">
+      
+        Capacity
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#configuration_3">
+<span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#choosing-a-transmission-mode">
+<span class="md-ellipsis">
+      
+        Choosing a Transmission Mode
+      
+    </span>
+</a>
+<nav aria-label="Choosing a Transmission Mode" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#decision-tree">
+<span class="md-ellipsis">
+      
+        Decision Tree
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#recommendations">
+<span class="md-ellipsis">
+      
+        Recommendations
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#frame-timing-details">
+<span class="md-ellipsis">
+      
+        Frame Timing Details
+      
+    </span>
+</a>
+<nav aria-label="Frame Timing Details" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-i-timing">
+<span class="md-ellipsis">
+      
+        Mode I Timing
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-ii-timing">
+<span class="md-ellipsis">
+      
+        Mode II Timing
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#capacity-unit-cu-calculations">
+<span class="md-ellipsis">
+      
+        Capacity Unit (CU) Calculations
+      
+    </span>
+</a>
+<nav aria-label="Capacity Unit (CU) Calculations" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#bitrate-to-cu-conversion">
+<span class="md-ellipsis">
+      
+        Bitrate to CU Conversion
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#protection-level-impact">
+<span class="md-ellipsis">
+      
+        Protection Level Impact
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#eti-frame-size-by-mode">
+<span class="md-ellipsis">
+      
+        ETI Frame Size by Mode
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#fic-capacity-by-mode">
+<span class="md-ellipsis">
+      
+        FIC Capacity by Mode
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#programming-examples">
+<span class="md-ellipsis">
+      
+        Programming Examples
+      
+    </span>
+</a>
+<nav aria-label="Programming Examples" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-i-configuration">
+<span class="md-ellipsis">
+      
+        Mode I Configuration
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-ii-configuration">
+<span class="md-ellipsis">
+      
+        Mode II Configuration
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#runtime-mode-detection">
+<span class="md-ellipsis">
+      
+        Runtime Mode Detection
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#see-also">
+<span class="md-ellipsis">
+      
+        See Also
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../extending/">
+<span class="md-ellipsis">
+    
+  
+    Extending
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_8" type="checkbox"/>
+<label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_8_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_8">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Troubleshooting
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../troubleshooting/">
+<span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../troubleshooting/common-errors/">
+<span class="md-ellipsis">
+    
+  
+    Common Errors
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../troubleshooting/input-issues.md">
+<span class="md-ellipsis">
+    
+  
+    Input Issues
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../troubleshooting/output-issues.md">
+<span class="md-ellipsis">
+    
+  
+    Output Issues
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../troubleshooting/network-issues.md">
+<span class="md-ellipsis">
+    
+  
+    Network Issues
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../troubleshooting/debugging.md">
+<span class="md-ellipsis">
+    
+  
+    Debugging
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../faq/">
+<span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_10" type="checkbox"/>
+<label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Standards
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_10_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_10">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Standards
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../standards/">
+<span class="md-ellipsis">
+    
+  
+    Standards and Compliance
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../standards/etsi-references.md">
+<span class="md-ellipsis">
+    
+  
+    ETSI References
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../standards/compliance.md">
+<span class="md-ellipsis">
+    
+  
+    Compliance
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle md-toggle--indeterminate" id="__nav_11" type="checkbox"/>
+<label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+<span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_11_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_11">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    Development
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../development/">
+<span class="md-ellipsis">
+    
+  
+    Development Guide
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../development/contributing/">
+<span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../development/testing.md">
+<span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../development/phase-summaries.md">
+<span class="md-ellipsis">
+    
+  
+    Phase Summaries
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../development/roadmap.md">
+<span class="md-ellipsis">
+    
+  
+    Roadmap
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../../glossary/">
+<span class="md-ellipsis">
+    
+  
+    Glossary
+  
+
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#overview">
+<span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-comparison-table">
+<span class="md-ellipsis">
+      
+        Mode Comparison Table
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-i-most-common">
+<span class="md-ellipsis">
+      
+        Mode I (Most Common)
+      
+    </span>
+</a>
+<nav aria-label="Mode I (Most Common)" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#characteristics">
+<span class="md-ellipsis">
+      
+        Characteristics
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#use-cases">
+<span class="md-ellipsis">
+      
+        Use Cases
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#frame-structure">
+<span class="md-ellipsis">
+      
+        Frame Structure
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#capacity-calculation">
+<span class="md-ellipsis">
+      
+        Capacity Calculation
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#configuration">
+<span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-ii">
+<span class="md-ellipsis">
+      
+        Mode II
+      
+    </span>
+</a>
+<nav aria-label="Mode II" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#characteristics_1">
+<span class="md-ellipsis">
+      
+        Characteristics
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#use-cases_1">
+<span class="md-ellipsis">
+      
+        Use Cases
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#frame-structure_1">
+<span class="md-ellipsis">
+      
+        Frame Structure
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#capacity">
+<span class="md-ellipsis">
+      
+        Capacity
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#configuration_1">
+<span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-iii">
+<span class="md-ellipsis">
+      
+        Mode III
+      
+    </span>
+</a>
+<nav aria-label="Mode III" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#characteristics_2">
+<span class="md-ellipsis">
+      
+        Characteristics
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#use-cases_2">
+<span class="md-ellipsis">
+      
+        Use Cases
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#frame-structure_2">
+<span class="md-ellipsis">
+      
+        Frame Structure
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#capacity_1">
+<span class="md-ellipsis">
+      
+        Capacity
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#configuration_2">
+<span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-iv">
+<span class="md-ellipsis">
+      
+        Mode IV
+      
+    </span>
+</a>
+<nav aria-label="Mode IV" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#characteristics_3">
+<span class="md-ellipsis">
+      
+        Characteristics
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#use-cases_3">
+<span class="md-ellipsis">
+      
+        Use Cases
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#capacity_2">
+<span class="md-ellipsis">
+      
+        Capacity
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#configuration_3">
+<span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#choosing-a-transmission-mode">
+<span class="md-ellipsis">
+      
+        Choosing a Transmission Mode
+      
+    </span>
+</a>
+<nav aria-label="Choosing a Transmission Mode" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#decision-tree">
+<span class="md-ellipsis">
+      
+        Decision Tree
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#recommendations">
+<span class="md-ellipsis">
+      
+        Recommendations
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#frame-timing-details">
+<span class="md-ellipsis">
+      
+        Frame Timing Details
+      
+    </span>
+</a>
+<nav aria-label="Frame Timing Details" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-i-timing">
+<span class="md-ellipsis">
+      
+        Mode I Timing
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-ii-timing">
+<span class="md-ellipsis">
+      
+        Mode II Timing
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#capacity-unit-cu-calculations">
+<span class="md-ellipsis">
+      
+        Capacity Unit (CU) Calculations
+      
+    </span>
+</a>
+<nav aria-label="Capacity Unit (CU) Calculations" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#bitrate-to-cu-conversion">
+<span class="md-ellipsis">
+      
+        Bitrate to CU Conversion
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#protection-level-impact">
+<span class="md-ellipsis">
+      
+        Protection Level Impact
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#eti-frame-size-by-mode">
+<span class="md-ellipsis">
+      
+        ETI Frame Size by Mode
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#fic-capacity-by-mode">
+<span class="md-ellipsis">
+      
+        FIC Capacity by Mode
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#programming-examples">
+<span class="md-ellipsis">
+      
+        Programming Examples
+      
+    </span>
+</a>
+<nav aria-label="Programming Examples" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-i-configuration">
+<span class="md-ellipsis">
+      
+        Mode I Configuration
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#mode-ii-configuration">
+<span class="md-ellipsis">
+      
+        Mode II Configuration
+      
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#runtime-mode-detection">
+<span class="md-ellipsis">
+      
+        Runtime Mode Detection
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#see-also">
+<span class="md-ellipsis">
+      
+        See Also
+      
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1 id="transmission-modes">Transmission Modes<a class="headerlink" href="#transmission-modes" title="Permanent link">¶</a></h1>
+<p>Complete guide to DAB transmission modes (I, II, III, IV) with technical details and capacity calculations.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">¶</a></h2>
+<p>DAB defines four transmission modes optimized for different coverage scenarios and frequency bands. The mode affects frame timing, FIC size, and total capacity.</p>
+<h2 id="mode-comparison-table">Mode Comparison Table<a class="headerlink" href="#mode-comparison-table" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Mode I</th>
+<th>Mode II</th>
+<th>Mode III</th>
+<th>Mode IV</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Frame Duration</strong></td>
+<td>96 ms</td>
+<td>24 ms</td>
+<td>24 ms</td>
+<td>96 ms</td>
+</tr>
+<tr>
+<td><strong>Symbols per Frame</strong></td>
+<td>76</td>
+<td>76</td>
+<td>153</td>
+<td>76</td>
+</tr>
+<tr>
+<td><strong>FIC Size</strong></td>
+<td>96 bytes</td>
+<td>32 bytes</td>
+<td>32 bytes</td>
+<td>32 bytes</td>
+</tr>
+<tr>
+<td><strong>Total Capacity (CU)</strong></td>
+<td>864</td>
+<td>432</td>
+<td>864</td>
+<td>432</td>
+</tr>
+<tr>
+<td><strong>Typical Use</strong></td>
+<td>VHF Band III</td>
+<td>VHF Band III (mobile)</td>
+<td>&lt; 3 GHz</td>
+<td>L-Band (1.5 GHz)</td>
+</tr>
+<tr>
+<td><strong>Max Range</strong></td>
+<td>Large area</td>
+<td>Medium area</td>
+<td>Medium area</td>
+<td>Local/mobile</td>
+</tr>
+<tr>
+<td><strong>Guard Interval</strong></td>
+<td>246 μs</td>
+<td>62 μs</td>
+<td>31 μs</td>
+<td>123 μs</td>
+</tr>
+</tbody>
+</table>
+<h2 id="mode-i-most-common">Mode I (Most Common)<a class="headerlink" href="#mode-i-most-common" title="Permanent link">¶</a></h2>
+<h3 id="characteristics">Characteristics<a class="headerlink" href="#characteristics" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Frame duration</strong>: 96 ms (10.416̄ frames/second)</li>
+<li><strong>FIC size</strong>: 96 bytes (3 FIBs × 32 bytes)</li>
+<li><strong>MST capacity</strong>: 864 CU</li>
+<li><strong>ETI frame size</strong>: 6144 bytes (6148 with TIST)</li>
+</ul>
+<h3 id="use-cases">Use Cases<a class="headerlink" href="#use-cases" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Primary use</strong>: VHF Band III (174-240 MHz)</li>
+<li><strong>Coverage</strong>: Large area, national networks</li>
+<li><strong>Environment</strong>: Fixed reception, portable radios</li>
+<li><strong>Typical</strong>: Most DAB transmissions worldwide</li>
+</ul>
+<h3 id="frame-structure">Frame Structure<a class="headerlink" href="#frame-structure" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a>┌─────────┬──────────┬────────────┬─────────┬────────────┐
+</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>│ SYNC    │ FC       │ STC × N    │ EOH     │ FIC (96 B) │
+</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a>│ 4 bytes │ 4 bytes  │ 4×N bytes  │ 4 bytes │            │
+</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a>└─────────┴──────────┴────────────┴─────────┴────────────┘
+</span><span id="__span-0-5"><a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a>         ┌────────────┬──────┬──────────┐
+</span><span id="__span-0-6"><a href="#__codelineno-0-6" id="__codelineno-0-6" name="__codelineno-0-6"></a>         │ MST        │ EOF  │ TIST     │
+</span><span id="__span-0-7"><a href="#__codelineno-0-7" id="__codelineno-0-7" name="__codelineno-0-7"></a>         │ ~5760 B    │ 4 B  │ 4 B (opt)│
+</span><span id="__span-0-8"><a href="#__codelineno-0-8" id="__codelineno-0-8" name="__codelineno-0-8"></a>         └────────────┴──────┴──────────┘
+</span></code></pre></div>
+<h3 id="capacity-calculation">Capacity Calculation<a class="headerlink" href="#capacity-calculation" title="Permanent link">¶</a></h3>
+<p>Total capacity: <strong>864 CU</strong></p>
+<p>Example ensemble (Mode I):
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a>Service 1: 128 kbps, protection 2 → ~84 CU
+</span><span id="__span-1-2"><a href="#__codelineno-1-2" id="__codelineno-1-2" name="__codelineno-1-2"></a>Service 2: 128 kbps, protection 2 → ~84 CU
+</span><span id="__span-1-3"><a href="#__codelineno-1-3" id="__codelineno-1-3" name="__codelineno-1-3"></a>Service 3: 96 kbps, protection 2  → ~63 CU
+</span><span id="__span-1-4"><a href="#__codelineno-1-4" id="__codelineno-1-4" name="__codelineno-1-4"></a>Service 4: 96 kbps, protection 2  → ~63 CU
+</span><span id="__span-1-5"><a href="#__codelineno-1-5" id="__codelineno-1-5" name="__codelineno-1-5"></a>Service 5: 64 kbps, protection 2  → ~42 CU
+</span><span id="__span-1-6"><a href="#__codelineno-1-6" id="__codelineno-1-6" name="__codelineno-1-6"></a>Service 6: 64 kbps, protection 2  → ~42 CU
+</span><span id="__span-1-7"><a href="#__codelineno-1-7" id="__codelineno-1-7" name="__codelineno-1-7"></a>                             Total: ~378 CU (44% of 864)
+</span></code></pre></div></p>
+<p>Can fit <strong>6-8 services</strong> at standard quality.</p>
+<h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">¶</a></h3>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-2-1"><a href="#__codelineno-2-1" id="__codelineno-2-1" name="__codelineno-2-1"></a><span class="nt">ensemble</span><span class="p">:</span>
+</span><span id="__span-2-2"><a href="#__codelineno-2-2" id="__codelineno-2-2" name="__codelineno-2-2"></a><span class="w">  </span><span class="nt">transmission_mode</span><span class="p">:</span><span class="w"> </span><span class="s">'I'</span><span class="w">  </span><span class="c1"># or 1</span>
+</span></code></pre></div>
+<hr/>
+<h2 id="mode-ii">Mode II<a class="headerlink" href="#mode-ii" title="Permanent link">¶</a></h2>
+<h3 id="characteristics_1">Characteristics<a class="headerlink" href="#characteristics_1" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Frame duration</strong>: 24 ms (41.6̄ frames/second)</li>
+<li><strong>FIC size</strong>: 32 bytes (1 FIB)</li>
+<li><strong>MST capacity</strong>: 432 CU (half of Mode I)</li>
+<li><strong>ETI frame size</strong>: ~3100 bytes</li>
+</ul>
+<h3 id="use-cases_1">Use Cases<a class="headerlink" href="#use-cases_1" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Primary use</strong>: VHF Band III (mobile reception)</li>
+<li><strong>Coverage</strong>: Medium area, regional networks</li>
+<li><strong>Environment</strong>: Fast-moving vehicles</li>
+<li><strong>Benefits</strong>: Better Doppler shift handling</li>
+</ul>
+<h3 id="frame-structure_1">Frame Structure<a class="headerlink" href="#frame-structure_1" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a href="#__codelineno-3-1" id="__codelineno-3-1" name="__codelineno-3-1"></a>┌─────────┬──────────┬────────────┬─────────┬────────────┐
+</span><span id="__span-3-2"><a href="#__codelineno-3-2" id="__codelineno-3-2" name="__codelineno-3-2"></a>│ SYNC    │ FC       │ STC × N    │ EOH     │ FIC (32 B) │
+</span><span id="__span-3-3"><a href="#__codelineno-3-3" id="__codelineno-3-3" name="__codelineno-3-3"></a>│ 4 bytes │ 4 bytes  │ 4×N bytes  │ 4 bytes │            │
+</span><span id="__span-3-4"><a href="#__codelineno-3-4" id="__codelineno-3-4" name="__codelineno-3-4"></a>└─────────┴──────────┴────────────┴─────────┴────────────┘
+</span><span id="__span-3-5"><a href="#__codelineno-3-5" id="__codelineno-3-5" name="__codelineno-3-5"></a>         ┌────────────┬──────┐
+</span><span id="__span-3-6"><a href="#__codelineno-3-6" id="__codelineno-3-6" name="__codelineno-3-6"></a>         │ MST        │ EOF  │
+</span><span id="__span-3-7"><a href="#__codelineno-3-7" id="__codelineno-3-7" name="__codelineno-3-7"></a>         │ ~3000 B    │ 4 B  │
+</span><span id="__span-3-8"><a href="#__codelineno-3-8" id="__codelineno-3-8" name="__codelineno-3-8"></a>         └────────────┴──────┘
+</span></code></pre></div>
+<h3 id="capacity">Capacity<a class="headerlink" href="#capacity" title="Permanent link">¶</a></h3>
+<p>Total capacity: <strong>432 CU</strong> (50% of Mode I)</p>
+<p>Example ensemble:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a href="#__codelineno-4-1" id="__codelineno-4-1" name="__codelineno-4-1"></a>Service 1: 96 kbps, protection 2  → ~63 CU
+</span><span id="__span-4-2"><a href="#__codelineno-4-2" id="__codelineno-4-2" name="__codelineno-4-2"></a>Service 2: 96 kbps, protection 2  → ~63 CU
+</span><span id="__span-4-3"><a href="#__codelineno-4-3" id="__codelineno-4-3" name="__codelineno-4-3"></a>Service 3: 64 kbps, protection 2  → ~42 CU
+</span><span id="__span-4-4"><a href="#__codelineno-4-4" id="__codelineno-4-4" name="__codelineno-4-4"></a>Service 4: 64 kbps, protection 2  → ~42 CU
+</span><span id="__span-4-5"><a href="#__codelineno-4-5" id="__codelineno-4-5" name="__codelineno-4-5"></a>                             Total: ~210 CU (49% of 432)
+</span></code></pre></div></p>
+<p>Can fit <strong>3-5 services</strong> at standard quality.</p>
+<h3 id="configuration_1">Configuration<a class="headerlink" href="#configuration_1" title="Permanent link">¶</a></h3>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-5-1"><a href="#__codelineno-5-1" id="__codelineno-5-1" name="__codelineno-5-1"></a><span class="nt">ensemble</span><span class="p">:</span>
+</span><span id="__span-5-2"><a href="#__codelineno-5-2" id="__codelineno-5-2" name="__codelineno-5-2"></a><span class="w">  </span><span class="nt">transmission_mode</span><span class="p">:</span><span class="w"> </span><span class="s">'II'</span><span class="w">  </span><span class="c1"># or 2</span>
+</span></code></pre></div>
+<hr/>
+<h2 id="mode-iii">Mode III<a class="headerlink" href="#mode-iii" title="Permanent link">¶</a></h2>
+<h3 id="characteristics_2">Characteristics<a class="headerlink" href="#characteristics_2" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Frame duration</strong>: 24 ms (41.6̄ frames/second)</li>
+<li><strong>FIC size</strong>: 32 bytes</li>
+<li><strong>MST capacity</strong>: 864 CU (same as Mode I)</li>
+<li><strong>Symbols</strong>: 153 (double Mode II)</li>
+</ul>
+<h3 id="use-cases_2">Use Cases<a class="headerlink" href="#use-cases_2" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Primary use</strong>: Frequencies below 3 GHz</li>
+<li><strong>Coverage</strong>: Medium to large area</li>
+<li><strong>Benefits</strong>: More capacity than Mode II, faster updates than Mode I</li>
+</ul>
+<h3 id="frame-structure_2">Frame Structure<a class="headerlink" href="#frame-structure_2" title="Permanent link">¶</a></h3>
+<p>Similar to Mode II but with double the MST capacity.</p>
+<h3 id="capacity_1">Capacity<a class="headerlink" href="#capacity_1" title="Permanent link">¶</a></h3>
+<p>Total capacity: <strong>864 CU</strong> (same as Mode I)</p>
+<p>Can fit <strong>6-8 services</strong> at standard quality, with faster frame rate than Mode I.</p>
+<h3 id="configuration_2">Configuration<a class="headerlink" href="#configuration_2" title="Permanent link">¶</a></h3>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-6-1"><a href="#__codelineno-6-1" id="__codelineno-6-1" name="__codelineno-6-1"></a><span class="nt">ensemble</span><span class="p">:</span>
+</span><span id="__span-6-2"><a href="#__codelineno-6-2" id="__codelineno-6-2" name="__codelineno-6-2"></a><span class="w">  </span><span class="nt">transmission_mode</span><span class="p">:</span><span class="w"> </span><span class="s">'III'</span><span class="w">  </span><span class="c1"># or 3</span>
+</span></code></pre></div>
+<hr/>
+<h2 id="mode-iv">Mode IV<a class="headerlink" href="#mode-iv" title="Permanent link">¶</a></h2>
+<h3 id="characteristics_3">Characteristics<a class="headerlink" href="#characteristics_3" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Frame duration</strong>: 96 ms (10.416̄ frames/second)</li>
+<li><strong>FIC size</strong>: 32 bytes</li>
+<li><strong>MST capacity</strong>: 432 CU (same as Mode II)</li>
+</ul>
+<h3 id="use-cases_3">Use Cases<a class="headerlink" href="#use-cases_3" title="Permanent link">¶</a></h3>
+<ul>
+<li><strong>Primary use</strong>: L-Band (1.5 GHz)</li>
+<li><strong>Coverage</strong>: Local, mobile services</li>
+<li><strong>Environment</strong>: Urban areas, complementary services</li>
+</ul>
+<h3 id="capacity_2">Capacity<a class="headerlink" href="#capacity_2" title="Permanent link">¶</a></h3>
+<p>Total capacity: <strong>432 CU</strong> (same as Mode II)</p>
+<p>Can fit <strong>3-5 services</strong> at standard quality.</p>
+<h3 id="configuration_3">Configuration<a class="headerlink" href="#configuration_3" title="Permanent link">¶</a></h3>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-7-1"><a href="#__codelineno-7-1" id="__codelineno-7-1" name="__codelineno-7-1"></a><span class="nt">ensemble</span><span class="p">:</span>
+</span><span id="__span-7-2"><a href="#__codelineno-7-2" id="__codelineno-7-2" name="__codelineno-7-2"></a><span class="w">  </span><span class="nt">transmission_mode</span><span class="p">:</span><span class="w"> </span><span class="s">'IV'</span><span class="w">  </span><span class="c1"># or 4</span>
+</span></code></pre></div>
+<hr/>
+<h2 id="choosing-a-transmission-mode">Choosing a Transmission Mode<a class="headerlink" href="#choosing-a-transmission-mode" title="Permanent link">¶</a></h2>
+<h3 id="decision-tree">Decision Tree<a class="headerlink" href="#decision-tree" title="Permanent link">¶</a></h3>
+<pre class="mermaid"><code>graph TD
+    A[Choose Transmission Mode] --&gt; B{Frequency Band?}
+    B --&gt;|VHF Band III<br/>174-240 MHz| C{Mobile or Fixed?}
+    B --&gt;|L-Band<br/>1.5 GHz| D[Mode IV]
+    B --&gt;|Below 3 GHz| E[Mode III]
+
+    C --&gt;|Fixed/Portable| F{Coverage Area?}
+    C --&gt;|Mobile| G[Mode II]
+
+    F --&gt;|Large/National| H[Mode I]
+    F --&gt;|Regional| G
+</code></pre>
+<h3 id="recommendations">Recommendations<a class="headerlink" href="#recommendations" title="Permanent link">¶</a></h3>
+<p><strong>Use Mode I if:</strong>
+- ✅ VHF Band III (174-240 MHz)
+- ✅ Large coverage area (national network)
+- ✅ Fixed or portable reception
+- ✅ Maximum capacity needed (6-8 services)
+- ✅ <strong>Most common choice</strong></p>
+<p><strong>Use Mode II if:</strong>
+- ✅ VHF Band III
+- ✅ Mobile reception (vehicles)
+- ✅ Better Doppler tolerance needed
+- ✅ Fewer services (3-5)</p>
+<p><strong>Use Mode III if:</strong>
+- ✅ Frequencies below 3 GHz
+- ✅ Large capacity with faster frame rate
+- ✅ Specialized deployment</p>
+<p><strong>Use Mode IV if:</strong>
+- ✅ L-Band (1.5 GHz)
+- ✅ Local or mobile services
+- ✅ Urban areas</p>
+<h2 id="frame-timing-details">Frame Timing Details<a class="headerlink" href="#frame-timing-details" title="Permanent link">¶</a></h2>
+<h3 id="mode-i-timing">Mode I Timing<a class="headerlink" href="#mode-i-timing" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a href="#__codelineno-8-1" id="__codelineno-8-1" name="__codelineno-8-1"></a>Frame duration: 96 ms
+</span><span id="__span-8-2"><a href="#__codelineno-8-2" id="__codelineno-8-2" name="__codelineno-8-2"></a>─────────────────────────────────────────────────
+</span><span id="__span-8-3"><a href="#__codelineno-8-3" id="__codelineno-8-3" name="__codelineno-8-3"></a>│ NULL │ OFDM Symbol × 76 │
+</span><span id="__span-8-4"><a href="#__codelineno-8-4" id="__codelineno-8-4" name="__codelineno-8-4"></a>│ 1.297│     ~1.246 ms each │
+</span><span id="__span-8-5"><a href="#__codelineno-8-5" id="__codelineno-8-5" name="__codelineno-8-5"></a>│  ms  │                    │
+</span><span id="__span-8-6"><a href="#__codelineno-8-6" id="__codelineno-8-6" name="__codelineno-8-6"></a>─────────────────────────────────────────────────
+</span><span id="__span-8-7"><a href="#__codelineno-8-7" id="__codelineno-8-7" name="__codelineno-8-7"></a>         Total: 96 ms (10.416̄ fps)
+</span><span id="__span-8-8"><a href="#__codelineno-8-8" id="__codelineno-8-8" name="__codelineno-8-8"></a>
+</span><span id="__span-8-9"><a href="#__codelineno-8-9" id="__codelineno-8-9" name="__codelineno-8-9"></a>Guard interval: 246 μs
+</span><span id="__span-8-10"><a href="#__codelineno-8-10" id="__codelineno-8-10" name="__codelineno-8-10"></a>Symbol duration: 1.246 ms
+</span></code></pre></div>
+<h3 id="mode-ii-timing">Mode II Timing<a class="headerlink" href="#mode-ii-timing" title="Permanent link">¶</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a href="#__codelineno-9-1" id="__codelineno-9-1" name="__codelineno-9-1"></a>Frame duration: 24 ms
+</span><span id="__span-9-2"><a href="#__codelineno-9-2" id="__codelineno-9-2" name="__codelineno-9-2"></a>──────────────────────────────
+</span><span id="__span-9-3"><a href="#__codelineno-9-3" id="__codelineno-9-3" name="__codelineno-9-3"></a>│ NULL │ OFDM Symbol × 76 │
+</span><span id="__span-9-4"><a href="#__codelineno-9-4" id="__codelineno-9-4" name="__codelineno-9-4"></a>│ 324  │    ~311.5 μs each│
+</span><span id="__span-9-5"><a href="#__codelineno-9-5" id="__codelineno-9-5" name="__codelineno-9-5"></a>│  μs  │                  │
+</span><span id="__span-9-6"><a href="#__codelineno-9-6" id="__codelineno-9-6" name="__codelineno-9-6"></a>──────────────────────────────
+</span><span id="__span-9-7"><a href="#__codelineno-9-7" id="__codelineno-9-7" name="__codelineno-9-7"></a>     Total: 24 ms (41.6̄ fps)
+</span><span id="__span-9-8"><a href="#__codelineno-9-8" id="__codelineno-9-8" name="__codelineno-9-8"></a>
+</span><span id="__span-9-9"><a href="#__codelineno-9-9" id="__codelineno-9-9" name="__codelineno-9-9"></a>Guard interval: 62 μs
+</span><span id="__span-9-10"><a href="#__codelineno-9-10" id="__codelineno-9-10" name="__codelineno-9-10"></a>Symbol duration: 311.5 μs
+</span></code></pre></div>
+<h2 id="capacity-unit-cu-calculations">Capacity Unit (CU) Calculations<a class="headerlink" href="#capacity-unit-cu-calculations" title="Permanent link">¶</a></h2>
+<p>One Capacity Unit (CU) = 8 kbps equivalent.</p>
+<h3 id="bitrate-to-cu-conversion">Bitrate to CU Conversion<a class="headerlink" href="#bitrate-to-cu-conversion" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Bitrate</th>
+<th>Protection</th>
+<th>CUs (approx)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>32 kbps</td>
+<td>Level 2</td>
+<td>18</td>
+</tr>
+<tr>
+<td>64 kbps</td>
+<td>Level 2</td>
+<td>42</td>
+</tr>
+<tr>
+<td>96 kbps</td>
+<td>Level 2</td>
+<td>63</td>
+</tr>
+<tr>
+<td>128 kbps</td>
+<td>Level 2</td>
+<td>84</td>
+</tr>
+<tr>
+<td>160 kbps</td>
+<td>Level 2</td>
+<td>105</td>
+</tr>
+<tr>
+<td>192 kbps</td>
+<td>Level 2</td>
+<td>126</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note</strong>: Higher protection levels require more CUs for the same bitrate.</p>
+<h3 id="protection-level-impact">Protection Level Impact<a class="headerlink" href="#protection-level-impact" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Bitrate</th>
+<th>Protection 1</th>
+<th>Protection 2</th>
+<th>Protection 3</th>
+<th>Protection 4</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>128 kbps</td>
+<td>76 CU</td>
+<td>84 CU</td>
+<td>96 CU</td>
+<td>116 CU</td>
+</tr>
+</tbody>
+</table>
+<p>Higher protection = more error correction = more CUs needed.</p>
+<h2 id="eti-frame-size-by-mode">ETI Frame Size by Mode<a class="headerlink" href="#eti-frame-size-by-mode" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Frame Size (bytes)</th>
+<th>With TIST</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I</td>
+<td>6144</td>
+<td>6148</td>
+</tr>
+<tr>
+<td>II</td>
+<td>~3072</td>
+<td>~3076</td>
+</tr>
+<tr>
+<td>III</td>
+<td>~6144</td>
+<td>~6148</td>
+</tr>
+<tr>
+<td>IV</td>
+<td>~3072</td>
+<td>~3076</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note</strong>: Exact MST size depends on number and configuration of subchannels.</p>
+<h2 id="fic-capacity-by-mode">FIC Capacity by Mode<a class="headerlink" href="#fic-capacity-by-mode" title="Permanent link">¶</a></h2>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>FIBs per Frame</th>
+<th>Total FIC Size</th>
+<th>FIG Capacity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I</td>
+<td>3</td>
+<td>96 bytes</td>
+<td>3 × 30 bytes = 90 bytes</td>
+</tr>
+<tr>
+<td>II</td>
+<td>1</td>
+<td>32 bytes</td>
+<td>30 bytes</td>
+</tr>
+<tr>
+<td>III</td>
+<td>1</td>
+<td>32 bytes</td>
+<td>30 bytes</td>
+</tr>
+<tr>
+<td>IV</td>
+<td>1</td>
+<td>32 bytes</td>
+<td>30 bytes</td>
+</tr>
+</tbody>
+</table>
+<p>Mode I can carry <strong>3× more FIG data</strong> per frame.</p>
+<h2 id="programming-examples">Programming Examples<a class="headerlink" href="#programming-examples" title="Permanent link">¶</a></h2>
+<h3 id="mode-i-configuration">Mode I Configuration<a class="headerlink" href="#mode-i-configuration" title="Permanent link">¶</a></h3>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-10-1"><a href="#__codelineno-10-1" id="__codelineno-10-1" name="__codelineno-10-1"></a><span class="nt">ensemble</span><span class="p">:</span>
+</span><span id="__span-10-2"><a href="#__codelineno-10-2" id="__codelineno-10-2" name="__codelineno-10-2"></a><span class="w">  </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="s">'0xCE15'</span>
+</span><span id="__span-10-3"><a href="#__codelineno-10-3" id="__codelineno-10-3" name="__codelineno-10-3"></a><span class="w">  </span><span class="nt">transmission_mode</span><span class="p">:</span><span class="w"> </span><span class="s">'I'</span>
+</span><span id="__span-10-4"><a href="#__codelineno-10-4" id="__codelineno-10-4" name="__codelineno-10-4"></a><span class="w">  </span><span class="nt">label</span><span class="p">:</span>
+</span><span id="__span-10-5"><a href="#__codelineno-10-5" id="__codelineno-10-5" name="__codelineno-10-5"></a><span class="w">    </span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="s">'National</span><span class="nv"> </span><span class="s">DAB'</span>
+</span><span id="__span-10-6"><a href="#__codelineno-10-6" id="__codelineno-10-6" name="__codelineno-10-6"></a>
+</span><span id="__span-10-7"><a href="#__codelineno-10-7" id="__codelineno-10-7" name="__codelineno-10-7"></a><span class="c1"># Can fit 6-8 services at 128 kbps</span>
+</span><span id="__span-10-8"><a href="#__codelineno-10-8" id="__codelineno-10-8" name="__codelineno-10-8"></a><span class="nt">subchannels</span><span class="p">:</span>
+</span><span id="__span-10-9"><a href="#__codelineno-10-9" id="__codelineno-10-9" name="__codelineno-10-9"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+</span><span id="__span-10-10"><a href="#__codelineno-10-10" id="__codelineno-10-10" name="__codelineno-10-10"></a><span class="w">    </span><span class="nt">bitrate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">128</span>
+</span><span id="__span-10-11"><a href="#__codelineno-10-11" id="__codelineno-10-11" name="__codelineno-10-11"></a><span class="w">    </span><span class="nt">start_address</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+</span><span id="__span-10-12"><a href="#__codelineno-10-12" id="__codelineno-10-12" name="__codelineno-10-12"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+</span><span id="__span-10-13"><a href="#__codelineno-10-13" id="__codelineno-10-13" name="__codelineno-10-13"></a><span class="w">    </span><span class="nt">bitrate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">128</span>
+</span><span id="__span-10-14"><a href="#__codelineno-10-14" id="__codelineno-10-14" name="__codelineno-10-14"></a><span class="w">    </span><span class="nt">start_address</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">84</span>
+</span><span id="__span-10-15"><a href="#__codelineno-10-15" id="__codelineno-10-15" name="__codelineno-10-15"></a><span class="w">  </span><span class="c1"># ... up to 8 services</span>
+</span></code></pre></div>
+<h3 id="mode-ii-configuration">Mode II Configuration<a class="headerlink" href="#mode-ii-configuration" title="Permanent link">¶</a></h3>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-11-1"><a href="#__codelineno-11-1" id="__codelineno-11-1" name="__codelineno-11-1"></a><span class="nt">ensemble</span><span class="p">:</span>
+</span><span id="__span-11-2"><a href="#__codelineno-11-2" id="__codelineno-11-2" name="__codelineno-11-2"></a><span class="w">  </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="s">'0xCE15'</span>
+</span><span id="__span-11-3"><a href="#__codelineno-11-3" id="__codelineno-11-3" name="__codelineno-11-3"></a><span class="w">  </span><span class="nt">transmission_mode</span><span class="p">:</span><span class="w"> </span><span class="s">'II'</span>
+</span><span id="__span-11-4"><a href="#__codelineno-11-4" id="__codelineno-11-4" name="__codelineno-11-4"></a><span class="w">  </span><span class="nt">label</span><span class="p">:</span>
+</span><span id="__span-11-5"><a href="#__codelineno-11-5" id="__codelineno-11-5" name="__codelineno-11-5"></a><span class="w">    </span><span class="nt">text</span><span class="p">:</span><span class="w"> </span><span class="s">'Mobile</span><span class="nv"> </span><span class="s">DAB'</span>
+</span><span id="__span-11-6"><a href="#__codelineno-11-6" id="__codelineno-11-6" name="__codelineno-11-6"></a>
+</span><span id="__span-11-7"><a href="#__codelineno-11-7" id="__codelineno-11-7" name="__codelineno-11-7"></a><span class="c1"># Can fit 3-5 services</span>
+</span><span id="__span-11-8"><a href="#__codelineno-11-8" id="__codelineno-11-8" name="__codelineno-11-8"></a><span class="nt">subchannels</span><span class="p">:</span>
+</span><span id="__span-11-9"><a href="#__codelineno-11-9" id="__codelineno-11-9" name="__codelineno-11-9"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+</span><span id="__span-11-10"><a href="#__codelineno-11-10" id="__codelineno-11-10" name="__codelineno-11-10"></a><span class="w">    </span><span class="nt">bitrate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">96</span>
+</span><span id="__span-11-11"><a href="#__codelineno-11-11" id="__codelineno-11-11" name="__codelineno-11-11"></a><span class="w">    </span><span class="nt">start_address</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+</span><span id="__span-11-12"><a href="#__codelineno-11-12" id="__codelineno-11-12" name="__codelineno-11-12"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+</span><span id="__span-11-13"><a href="#__codelineno-11-13" id="__codelineno-11-13" name="__codelineno-11-13"></a><span class="w">    </span><span class="nt">bitrate</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">96</span>
+</span><span id="__span-11-14"><a href="#__codelineno-11-14" id="__codelineno-11-14" name="__codelineno-11-14"></a><span class="w">    </span><span class="nt">start_address</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">63</span>
+</span><span id="__span-11-15"><a href="#__codelineno-11-15" id="__codelineno-11-15" name="__codelineno-11-15"></a><span class="w">  </span><span class="c1"># ... up to 5 services</span>
+</span></code></pre></div>
+<h3 id="runtime-mode-detection">Runtime Mode Detection<a class="headerlink" href="#runtime-mode-detection" title="Permanent link">¶</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a href="#__codelineno-12-1" id="__codelineno-12-1" name="__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">dabmux.core.eti</span><span class="w"> </span><span class="kn">import</span> <span class="n">TransmissionMode</span>
+</span><span id="__span-12-2"><a href="#__codelineno-12-2" id="__codelineno-12-2" name="__codelineno-12-2"></a>
+</span><span id="__span-12-3"><a href="#__codelineno-12-3" id="__codelineno-12-3" name="__codelineno-12-3"></a><span class="c1"># Get mode from ensemble</span>
+</span><span id="__span-12-4"><a href="#__codelineno-12-4" id="__codelineno-12-4" name="__codelineno-12-4"></a><span class="n">mode</span> <span class="o">=</span> <span class="n">ensemble</span><span class="o">.</span><span class="n">transmission_mode</span>
+</span><span id="__span-12-5"><a href="#__codelineno-12-5" id="__codelineno-12-5" name="__codelineno-12-5"></a>
+</span><span id="__span-12-6"><a href="#__codelineno-12-6" id="__codelineno-12-6" name="__codelineno-12-6"></a><span class="c1"># Check mode</span>
+</span><span id="__span-12-7"><a href="#__codelineno-12-7" id="__codelineno-12-7" name="__codelineno-12-7"></a><span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="n">TransmissionMode</span><span class="o">.</span><span class="n">TM_I</span><span class="p">:</span>
+</span><span id="__span-12-8"><a href="#__codelineno-12-8" id="__codelineno-12-8" name="__codelineno-12-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Mode I: 96ms frames, 864 CU capacity"</span><span class="p">)</span>
+</span><span id="__span-12-9"><a href="#__codelineno-12-9" id="__codelineno-12-9" name="__codelineno-12-9"></a><span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="n">TransmissionMode</span><span class="o">.</span><span class="n">TM_II</span><span class="p">:</span>
+</span><span id="__span-12-10"><a href="#__codelineno-12-10" id="__codelineno-12-10" name="__codelineno-12-10"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"Mode II: 24ms frames, 432 CU capacity"</span><span class="p">)</span>
+</span><span id="__span-12-11"><a href="#__codelineno-12-11" id="__codelineno-12-11" name="__codelineno-12-11"></a>
+</span><span id="__span-12-12"><a href="#__codelineno-12-12" id="__codelineno-12-12" name="__codelineno-12-12"></a><span class="c1"># Get frame properties</span>
+</span><span id="__span-12-13"><a href="#__codelineno-12-13" id="__codelineno-12-13" name="__codelineno-12-13"></a><span class="n">frame_duration_ms</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-12-14"><a href="#__codelineno-12-14" id="__codelineno-12-14" name="__codelineno-12-14"></a>    <span class="n">TransmissionMode</span><span class="o">.</span><span class="n">TM_I</span><span class="p">:</span> <span class="mi">96</span><span class="p">,</span>
+</span><span id="__span-12-15"><a href="#__codelineno-12-15" id="__codelineno-12-15" name="__codelineno-12-15"></a>    <span class="n">TransmissionMode</span><span class="o">.</span><span class="n">TM_II</span><span class="p">:</span> <span class="mi">24</span><span class="p">,</span>
+</span><span id="__span-12-16"><a href="#__codelineno-12-16" id="__codelineno-12-16" name="__codelineno-12-16"></a>    <span class="n">TransmissionMode</span><span class="o">.</span><span class="n">TM_III</span><span class="p">:</span> <span class="mi">24</span><span class="p">,</span>
+</span><span id="__span-12-17"><a href="#__codelineno-12-17" id="__codelineno-12-17" name="__codelineno-12-17"></a>    <span class="n">TransmissionMode</span><span class="o">.</span><span class="n">TM_IV</span><span class="p">:</span> <span class="mi">96</span>
+</span><span id="__span-12-18"><a href="#__codelineno-12-18" id="__codelineno-12-18" name="__codelineno-12-18"></a><span class="p">}[</span><span class="n">mode</span><span class="p">]</span>
+</span><span id="__span-12-19"><a href="#__codelineno-12-19" id="__codelineno-12-19" name="__codelineno-12-19"></a>
+</span><span id="__span-12-20"><a href="#__codelineno-12-20" id="__codelineno-12-20" name="__codelineno-12-20"></a><span class="n">fic_size</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-12-21"><a href="#__codelineno-12-21" id="__codelineno-12-21" name="__codelineno-12-21"></a>    <span class="n">TransmissionMode</span><span class="o">.</span><span class="n">TM_I</span><span class="p">:</span> <span class="mi">96</span><span class="p">,</span>
+</span><span id="__span-12-22"><a href="#__codelineno-12-22" id="__codelineno-12-22" name="__codelineno-12-22"></a>    <span class="n">TransmissionMode</span><span class="o">.</span><span class="n">TM_II</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>
+</span><span id="__span-12-23"><a href="#__codelineno-12-23" id="__codelineno-12-23" name="__codelineno-12-23"></a>    <span class="n">TransmissionMode</span><span class="o">.</span><span class="n">TM_III</span><span class="p">:</span> <span class="mi">32</span><span class="p">,</span>
+</span><span id="__span-12-24"><a href="#__codelineno-12-24" id="__codelineno-12-24" name="__codelineno-12-24"></a>    <span class="n">TransmissionMode</span><span class="o">.</span><span class="n">TM_IV</span><span class="p">:</span> <span class="mi">32</span>
+</span><span id="__span-12-25"><a href="#__codelineno-12-25" id="__codelineno-12-25" name="__codelineno-12-25"></a><span class="p">}[</span><span class="n">mode</span><span class="p">]</span>
+</span></code></pre></div>
+<h2 id="see-also">See Also<a class="headerlink" href="#see-also" title="Permanent link">¶</a></h2>
+<ul>
+<li><a href="../../architecture/eti-frames/">Architecture: ETI Frames</a> - Frame structure details</li>
+<li><a href="../../user-guide/configuration/subchannels/">Configuration: Subchannels</a> - Capacity planning</li>
+<li><a href="../../api-reference/core/">Core API</a> - TransmissionMode enum</li>
+<li><a href="https://www.etsi.org/deliver/etsi_en/300400_300499/300401/">ETSI EN 300 401</a> - Official specification</li>
+</ul>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  Back to top
+</button>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+<div class="md-copyright__highlight">
+      Copyright © 2024 python-dabmux contributors
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+<div class="md-social">
+<a class="md-social__link" href="https://github.com/python-dabmux/python-dabmux" rel="noopener" target="_blank" title="github.com">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+</a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+<script type="module">import mermaid from "https://unpkg.com/mermaid@10.4.0/dist/mermaid.esm.min.mjs";
+window.mermaidConfig = {default: {
+    startOnLoad: false
+}};</script></body>
+</html>

@@ -121,7 +121,7 @@ class TestDabProtection:
     def test_to_tpl(self) -> None:
         """Test TPL conversion."""
         prot = DabProtection(level=3)
-        tpl = prot.to_tpl()
+        tpl = prot.to_tpl(bitrate=96)  # 96 kbps bitrate
         assert isinstance(tpl, int)
         assert 0 <= tpl <= 0x3F
 
@@ -166,8 +166,8 @@ class TestDabSubchannel:
         sub.protection.level = 5
         size_cu = sub.get_size_cu()
         size_byte = sub.get_size_byte()
-        # Each CU is 8 bytes
-        assert size_byte == size_cu * 8
+        # Each CU is 4 bytes (1 word = 32 bits)
+        assert size_byte == size_cu * 4
 
     def test_validate_valid_subchannel(self) -> None:
         """Valid subchannel should pass validation."""

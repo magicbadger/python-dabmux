@@ -2,74 +2,226 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/faq/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/glossary/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/advanced/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/advanced/character-encoding/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/advanced/extending/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/advanced/fig-types/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/advanced/reed-solomon/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/advanced/timestamps-sync/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/advanced/transmission-modes/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/api-reference/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/api-reference/config/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/api-reference/core/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/api-reference/input/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/api-reference/mux/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/api-reference/output/</loc>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/architecture/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/architecture/configuration-hierarchy/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/architecture/data-flow/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/architecture/edi-protocol/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/architecture/eti-frames/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/architecture/fig-carousel/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/architecture/system-design/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/development/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/development/contributing/</loc>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/getting-started/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/getting-started/basic-concepts/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/getting-started/first-multiplex/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/getting-started/installation/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/getting-started/quick-setup/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/standards/</loc>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/troubleshooting/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/troubleshooting/common-errors/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/tutorials/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/tutorials/basic-single-service/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/tutorials/custom-inputs/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/tutorials/dab-plus-setup/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/tutorials/multi-service-ensemble/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/tutorials/network-streaming/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/tutorials/pft-with-fec/</loc>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/user-guide/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/user-guide/cli-reference/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
     </url>
     <url>
          <loc>https://github.com/python-dabmux/python-dabmux/user-guide/configuration/</loc>
-         <lastmod>2026-02-13</lastmod>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/user-guide/configuration/ensemble/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/user-guide/configuration/examples/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/user-guide/configuration/protection/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/user-guide/configuration/services/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/user-guide/configuration/subchannels/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/user-guide/inputs/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/user-guide/inputs/audio-formats/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/user-guide/inputs/file-inputs/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/user-guide/inputs/network-inputs/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/user-guide/outputs/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/user-guide/outputs/edi-network/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/user-guide/outputs/eti-files/</loc>
+         <lastmod>2026-02-16</lastmod>
+    </url>
+    <url>
+         <loc>https://github.com/python-dabmux/python-dabmux/user-guide/outputs/pft-fragmentation/</loc>
+         <lastmod>2026-02-16</lastmod>
     </url>
 </urlset>

@@ -68,6 +68,18 @@ class InputBase(ABC):
         """
         pass
 
+    def get_frame_size(self) -> int:
+        """
+        Get the actual frame size for this input.
+
+        This allows inputs to specify their actual data size, which may differ
+        from bitrate * 3 due to encoding overhead (e.g., DAB+ FEC protection).
+
+        Returns:
+            Frame size in bytes (defaults to 0 if not implemented)
+        """
+        return 0
+
     def read_frame_timestamped(
         self,
         size: int,

@@ -13,6 +13,7 @@ from dabmux.mux import DabMultiplexer
 from dabmux.output.file import FileOutput, EtiFileType
 from dabmux.output.edi import EdiOutput
 from dabmux.edi.pft import PFTConfig
+from dabmux.input.file import MPEGFileInput, RawFileInput
 
 logger = structlog.get_logger(__name__)
 
@@ -186,6 +187,85 @@ Examples:
 
         logging.basicConfig(level=level)
 
+    def create_inputs(self) -> None:
+        """
+        Create and add input sources from ensemble configuration.
+
+        Reads input_uri from each subchannel and creates appropriate
+        input sources (File, UDP, TCP, etc.).
+        """
+        from urllib.parse import urlparse
+
+        for subchannel in self.mux.ensemble.subchannels:
+            if not subchannel.input_uri:
+                logger.warning(
+                    "No input configured for subchannel, will use silence",
+                    subchannel=subchannel.uid
+                )
+                continue
+
+            # Parse input URI
+            uri = subchannel.input_uri
+            parsed = urlparse(uri)
+
+            try:
+                if parsed.scheme == 'file' or parsed.scheme == '':
+                    # File input - use MPEG for audio, Raw for data
+                    file_path = parsed.path if parsed.scheme == 'file' else uri
+                    logger.info(
+                        "Adding file input",
+                        subchannel=subchannel.uid,
+                        file=file_path
+                    )
+                    # Use appropriate input type based on subchannel type
+                    from dabmux.core.mux_elements import SubchannelType
+                    if subchannel.type == SubchannelType.DABPlusAudio:
+                        # DAB+ uses AAC or pre-encoded .dabp files
+                        if file_path.endswith('.dabp'):
+                            from dabmux.input.dabp_file import DABPFileInput
+                            input_source = DABPFileInput()
+                        else:
+                            from dabmux.input.file import AACFileInput
+                            input_source = AACFileInput()
+                    elif subchannel.type == SubchannelType.DABAudio:
+                        # DAB uses MPEG Layer II audio
+                        input_source = MPEGFileInput()
+                    else:
+                        # Data subchannels use raw input
+                        input_source = RawFileInput()
+                    # Configure input source
+                    input_source._load_entire_file = True  # Enable file preloading for looping
+                    input_source.set_bitrate(subchannel.bitrate)  # Set expected bitrate
+                    input_source.open(file_path)
+                    self.mux.add_input(subchannel.uid, input_source)
+
+                elif parsed.scheme == 'udp':
+                    logger.error(
+                        "UDP input not yet implemented",
+                        subchannel=subchannel.uid
+                    )
+
+                elif parsed.scheme == 'tcp':
+                    logger.error(
+                        "TCP input not yet implemented",
+                        subchannel=subchannel.uid
+                    )
+
+                else:
+                    logger.error(
+                        "Unsupported input URI scheme",
+                        subchannel=subchannel.uid,
+                        uri=uri
+                    )
+
+            except Exception as e:
+                logger.error(
+                    "Failed to create input source",
+                    subchannel=subchannel.uid,
+                    uri=uri,
+                    error=str(e)
+                )
+
     def create_output(self, args: argparse.Namespace):
         """
         Create output based on arguments.
@@ -272,6 +352,9 @@ Examples:
 
             # Create multiplexer
             self.mux = DabMultiplexer(ensemble)
+
+            # Create and add input sources
+            self.create_inputs()
 
             # Create output
             output = self.create_output(parsed_args)

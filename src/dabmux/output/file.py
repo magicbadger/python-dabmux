@@ -128,7 +128,8 @@ class FileOutput(DabOutput):
         self._frame_count += 1
 
         try:
-            if self._file_type == EtiFileType.FRAMED:
+            # Use .value comparison to avoid enum identity issues
+            if self._file_type.value == EtiFileType.FRAMED.value:
                 # Update frame count at beginning of file
                 current_pos = self._file.tell()
                 self._file.seek(0, 0)
@@ -141,14 +142,14 @@ class FileOutput(DabOutput):
                 # Write frame data
                 self._file.write(data)
 
-            elif self._file_type == EtiFileType.STREAMED:
+            elif self._file_type.value == EtiFileType.STREAMED.value:
                 # Write frame length (2 bytes, little-endian)
                 self._file.write(struct.pack('<H', size))
 
                 # Write frame data
                 self._file.write(data)
 
-            elif self._file_type == EtiFileType.RAW:
+            elif self._file_type.value == EtiFileType.RAW.value:
                 # Write frame data
                 self._file.write(data)
 

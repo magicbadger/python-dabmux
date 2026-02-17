@@ -725,6 +725,73 @@ services:
 
 ---
 
+### 26. MPEG CRC Warnings in Players (Cosmetic)
+
+**Warning:**
+```
+(CRC) (CRC) (CRC) (CRC) ...
+```
+
+**Cause:** Input MPEG Layer II files don't have CRC protection enabled. DAB standard requires CRC, but audio plays correctly despite warnings.
+
+**Is This a Problem?**
+- ✅ Audio plays normally
+- ✅ ETI frames are valid
+- ⚠️ Cosmetic warnings only
+- ⚠️ Non-compliant for broadcast (fine for testing)
+
+**Why It Happens:**
+The DAB standard (ETSI EN 300 401) requires MPEG frames to include CRC-16 protection. Most encoders (including ffmpeg) generate MP2 files without CRC by default.
+
+**Solutions:**
+
+**Option 1: Accept the warnings (Recommended for testing)**
+- Audio works perfectly
+- No action needed
+- Suitable for development and testing
+
+**Option 2: Re-encode with CRC protection**
+
+Using toolame:
+```bash
+# Install toolame
+brew install toolame  # macOS
+apt-get install toolame  # Linux
+
+# Encode with CRC enabled
+toolame -e -b 96 -s 48 input.wav output.mp2
+```
+
+Using ODR-AudioEnc:
+```bash
+odr-audioenc -i input.wav -b 96 -c 2 -r 48000 \
+  -o output.mp2 -f mp2 --mpeg-crc
+```
+
+**Option 3: Use DAB+ instead**
+```yaml
+services:
+  - sid: '0x5001'
+    label:
+      text: 'My Station'
+    components:
+      - type: 'dabplus'  # DAB+ has built-in error protection
+        bitrate: 48
+```
+
+**Technical Details:**
+- MPEG CRC protects bit allocation and scale factor metadata
+- Required for RF broadcast error detection
+- Cannot be added to existing non-CRC files without re-encoding
+- See [MPEG_CRC_LIMITATION.md](../../MPEG_CRC_LIMITATION.md) for full explanation
+
+**When to Fix:**
+- ✅ Production/broadcast systems: Re-encode with CRC
+- ✅ Critical applications: Use DAB+ instead
+- ⚠️ Testing/development: Warnings can be ignored
+
+---
+
 ## Getting More Help
 
 If your error isn't listed here:

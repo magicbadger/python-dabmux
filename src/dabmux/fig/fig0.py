@@ -7,7 +7,13 @@ This module implements the most important FIG 0 variants.
 import struct
 from typing import List
 from dabmux.fig.base import FIGBase, FIGRate, FillStatus
-from dabmux.core.mux_elements import DabEnsemble, DabSubchannel, DabService, ProtectionForm
+from dabmux.core.mux_elements import (
+    DabEnsemble,
+    DabSubchannel,
+    DabService,
+    ProtectionForm,
+    SubchannelType,
+)
 
 
 class FIG0_0(FIGBase):
@@ -166,7 +172,7 @@ class FIG0_1(FIGBase):
                 # Byte 1: Start Address low (8 bits)
                 # Byte 2: Table Index (6 bits) | Table Switch (1) | Form (1)
                 start_addr = subchannel.start_address
-                table_index = subchannel.protection.level & 0x3F
+                table_index = subchannel.protection.to_tpl(subchannel.bitrate) & 0x3F
                 table_switch = 0  # Always 0 for now
                 form = 0  # 0 = short form (UEP)
 
@@ -330,14 +336,34 @@ class FIG0_2(FIGBase):
             for component in components:
                 # Component: 2 bytes
                 # Byte 0: TMid (2) | ASCTy/DSCTy (6)
-                # Byte 1: PS (1) | CA (1) | SubChId (6)
+                # Byte 1: SubChId (6) | PS (1) | CA (1)
+                # Note: Byte layout matches dablin's parser (bits 7-2: SubChId, bit 1: PS, bit 0: CA)
+
+                # Determine ASCTy based on subchannel type
+                # ETSI EN 300 401 Section 6.3.3:
+                #   ASCTy = 0: DAB (MPEG Layer II)
+                #   ASCTy = 63: DAB+ (HE-AAC)
+                ascty = 0  # Default to DAB
+
+                # Look up subchannel to determine audio type
+                subchannel = None
+                for sc in self.ensemble.subchannels:
+                    if sc.id == component.subchannel_id:
+                        subchannel = sc
+                        break
+
+                if subchannel:
+                    if subchannel.type == SubchannelType.DABPlusAudio:
+                        ascty = 63  # DAB+ (HE-AAC)
+                    elif subchannel.type == SubchannelType.DABAudio:
+                        ascty = 0   # DAB (MPEG Layer II)
+
                 tmid = 0  # Stream mode (MSC stream)
-                ascty = 0  # Audio Service Component Type
                 ps = 1    # Primary/Secondary: 1 = primary
                 ca = 0    # CA flag: 0 = not conditional access
 
                 buf[pos] = (tmid << 6) | (ascty & 0x3F)
-                buf[pos + 1] = (ps << 7) | (ca << 6) | (component.subchannel_id & 0x3F)
+                buf[pos + 1] = ((component.subchannel_id & 0x3F) << 2) | (ps << 1) | ca
                 pos += 2
                 bytes_written_data += 2
 

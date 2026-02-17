@@ -1,0 +1,170 @@
+# DAB+ Multiplexer Configuration Example
+#
+# This configuration demonstrates a DAB+ ensemble with HE-AAC audio.
+# DAB+ provides better audio quality at lower bitrates compared to traditional DAB.
+#
+# Key Differences from DAB:
+#   - type: 'dabplus' (instead of 'audio')
+#   - Lower bitrates (48-80 kbps vs 128-192 kbps)
+#   - Requires AAC audio files (not MP2)
+#   - Better audio quality at lower bitrates
+
+ensemble:
+  # Ensemble ID (16-bit hex value)
+  # Use unique ID for your ensemble
+  id: '0xCE20'
+
+  # Extended Country Code (8-bit hex value)
+  # Examples: 0xE1=Germany, 0xE2=UK, 0xE0=EU, 0xF0=USA
+  ecc: '0xE1'
+
+  # Transmission mode: I, II, III, or IV
+  # Mode I: 1536 kHz bandwidth (most common)
+  # Mode II: 384 kHz (local/regional)
+  # Mode III: 192 kHz (mobile/portable)
+  # Mode IV: 768 kHz (trade-off)
+  transmission_mode: 'I'
+
+  # Ensemble label (max 16 characters)
+  # Displayed on receiver screens
+  label:
+    text: 'DAB+ Ensemble'
+    short: 'DAB+'  # Short label (max 8 characters)
+
+  # Local Time Offset
+  lto_auto: true  # Automatically calculate from system time
+  lto: 0          # Manual LTO in half-hours (-24 to +24)
+
+# Subchannels define the audio/data streams
+# For DAB+, use lower bitrates than traditional DAB
+subchannels:
+  # Music service (HE-AAC v2 stereo)
+  - uid: 'music_channel'
+    id: 0                      # Subchannel ID (0-63)
+    type: 'dabplus'            # DAB+ (HE-AAC) - IMPORTANT!
+    bitrate: 48                # 48 kbps (good quality for music)
+    start_address: 0           # Start address in Capacity Units
+    protection:
+      level: 2                 # Protection level (0-4)
+      shortform: true          # Use UEP (short form)
+    input: 'file:///path/to/music.aac'  # AAC file with HE-AAC v2
+
+  # Talk/speech service (HE-AAC v1 mono)
+  - uid: 'talk_channel'
+    id: 1
+    type: 'dabplus'
+    bitrate: 32                # 32 kbps (good for speech)
+    start_address: 32          # After first subchannel (48 kbps / 1.5 = 32 CU)
+    protection:
+      level: 2
+      shortform: true
+    input: 'file:///path/to/talk.aac'  # AAC file with HE-AAC v1 mono
+
+# Services define the radio stations/programs
+services:
+  # Music service
+  - uid: 'music_service'
+    id: '0x5001'               # Service ID (16-bit hex)
+    label:
+      text: 'DAB+ Music'       # Full label (max 16 chars)
+      short: 'Music'           # Short label (max 8 chars)
+    pty: 10                    # Programme Type (10=Pop Music)
+    language: 9                # Language code (9=English)
+
+  # Talk service
+  - uid: 'talk_service'
+    id: '0x5002'
+    label:
+      text: 'Talk Radio'
+      short: 'Talk'
+    pty: 1                     # Programme Type (1=News)
+    language: 9
+
+# Components link services to subchannels
+components:
+  # Music service component
+  - uid: 'music_comp'
+    service_id: '0x5001'       # Links to music_service
+    subchannel_id: 0           # Links to music_channel
+    type: 0                    # 0=Audio component
+
+  # Talk service component
+  - uid: 'talk_comp'
+    service_id: '0x5002'       # Links to talk_service
+    subchannel_id: 1           # Links to talk_channel
+    type: 0
+
+# ============================================================================
+# AUDIO ENCODING INSTRUCTIONS
+# ============================================================================
+#
+# Before using this configuration, encode your audio files to AAC:
+#
+# For Music (Stereo, HE-AAC v2, 48 kbps):
+# ----------------------------------------
+# ffmpeg -i input.mp3 \
+#   -c:a libfdk_aac \
+#   -profile:a aac_he_v2 \
+#   -b:a 48k \
+#   -ar 48000 \
+#   music.aac
+#
+# For Talk/Speech (Mono, HE-AAC v1, 32 kbps):
+# --------------------------------------------
+# ffmpeg -i input.mp3 \
+#   -c:a libfdk_aac \
+#   -profile:a aac_he \
+#   -b:a 32k \
+#   -ar 48000 \
+#   -ac 1 \
+#   talk.aac
+#
+# ============================================================================
+# BITRATE RECOMMENDATIONS
+# ============================================================================
+#
+# Music (Stereo):
+#   - 48 kbps: Good quality (standard DAB+ music)
+#   - 64 kbps: High quality (premium stations)
+#   - 80 kbps: Excellent quality (comparable to 128 kbps MP2)
+#
+# Speech/Talk (Mono):
+#   - 24 kbps: Acceptable for talk radio
+#   - 32 kbps: Good quality (podcasts, news)
+#   - 40 kbps: High quality (interviews)
+#
+# ============================================================================
+# RUNNING THE MULTIPLEXER
+# ============================================================================
+#
+# Generate ETI file (100 frames):
+# python -m dabmux.cli -c dabplus_config.yaml -o output.eti -f raw -n 100
+#
+# Continuous generation:
+# python -m dabmux.cli -c dabplus_config.yaml -o output.eti -f raw --continuous
+#
+# Test with dablin player:
+# dablin -s 0x5001 < output.eti
+#
+# ============================================================================
+# TROUBLESHOOTING
+# ============================================================================
+#
+# "No valid AAC frame found":
+#   - Check that input file is AAC format (not MP3 or MP2)
+#   - Verify encoding: ffprobe input.aac
+#
+# "Bitrate mismatch":
+#   - Ensure AAC file bitrate matches configuration
+#   - Re-encode with correct bitrate
+#
+# "dablin shows 'DAB' instead of 'DAB+'":
+#   - Verify type: 'dabplus' (not 'audio')
+#   - Check that AAC file is HE-AAC (not AAC-LC)
+#
+# "Audio doesn't play":
+#   - Verify AAC file is valid: ffplay input.aac
+#   - Check sample rate is 48000 Hz
+#   - Ensure file path is correct and accessible
+#
+# See AUDIO_ENCODING_GUIDE.md for complete encoding instructions.

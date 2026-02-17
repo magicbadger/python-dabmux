@@ -1,0 +1,126 @@
+# Mixed DAB and DAB+ Configuration
+#
+# This example shows a single ensemble containing both:
+#   - Traditional DAB service (MPEG Layer II)
+#   - Modern DAB+ service (HE-AAC)
+#
+# This allows gradual migration from DAB to DAB+ while maintaining
+# compatibility with older receivers.
+
+ensemble:
+  id: '0xCE22'
+  ecc: '0xE1'
+  transmission_mode: 'I'
+  label:
+    text: 'Mixed Ensemble'
+    short: 'Mixed'
+  lto_auto: true
+
+subchannels:
+  # Traditional DAB service (MPEG Layer II)
+  - uid: 'dab_audio'
+    id: 0
+    type: 'audio'            # Traditional DAB (MP2)
+    bitrate: 128             # 128 kbps (typical for DAB)
+    start_address: 0
+    protection:
+      level: 2
+      shortform: true
+    input: 'file://classic.mp2'
+
+  # Modern DAB+ service (HE-AAC)
+  - uid: 'dabplus_audio'
+    id: 1
+    type: 'dabplus'          # DAB+ (HE-AAC)
+    bitrate: 48              # 48 kbps (good quality)
+    start_address: 84        # After DAB channel (128/1.5 ≈ 85 CU)
+    protection:
+      level: 2
+      shortform: true
+    input: 'file://modern.aac'
+
+services:
+  # Traditional DAB service
+  - uid: 'classic_service'
+    id: '0x5001'
+    label:
+      text: 'Classic Radio'
+      short: 'Classic'
+    pty: 4                   # Classic music
+    language: 9
+
+  # Modern DAB+ service
+  - uid: 'modern_service'
+    id: '0x5002'
+    label:
+      text: 'Modern Radio'
+      short: 'Modern'
+    pty: 10                  # Pop music
+    language: 9
+
+components:
+  # Classic service component
+  - uid: 'classic_comp'
+    service_id: '0x5001'
+    subchannel_id: 0
+    type: 0
+
+  # Modern service component
+  - uid: 'modern_comp'
+    service_id: '0x5002'
+    subchannel_id: 1
+    type: 0
+
+# ============================================================================
+# ENCODING INSTRUCTIONS
+# ============================================================================
+#
+# For DAB (MPEG Layer II, 128 kbps):
+# ------------------------------------
+# ffmpeg -i input.mp3 -c:a mp2 -ar 48000 -b:a 128k classic.mp2
+#
+# For DAB+ (HE-AAC v2, 48 kbps):
+# -------------------------------
+# ffmpeg -i input.mp3 -c:a libfdk_aac -profile:a aac_he_v2 -b:a 48k -ar 48000 modern.aac
+#
+# ============================================================================
+# CAPACITY CALCULATION
+# ============================================================================
+#
+# DAB subchannel (128 kbps):
+#   Capacity Units = 128 / 1.5 ≈ 85 CU
+#
+# DAB+ subchannel (48 kbps):
+#   Capacity Units = 48 / 1.5 = 32 CU
+#
+# Total: 85 + 32 = 117 CU
+#
+# Mode I has 864 CU available, so this configuration uses 13.5% of capacity.
+#
+# ============================================================================
+# TESTING
+# ============================================================================
+#
+# Generate ETI:
+# python -m dabmux.cli -c mixed_dab_dabplus.yaml -o output.eti -f raw -n 100
+#
+# Test Classic Radio (DAB):
+# dablin -s 0x5001 < output.eti
+# Should show: "audio service (SubChId 0, DAB , primary)"
+#
+# Test Modern Radio (DAB+):
+# dablin -s 0x5002 < output.eti
+# Should show: "audio service (SubChId 1, DAB+, primary)"
+#
+# ============================================================================
+# RECEIVER COMPATIBILITY
+# ============================================================================
+#
+# - Old DAB-only receivers: Can only play "Classic Radio" (0x5001)
+# - New DAB+ receivers: Can play both services
+# - DAB+ receivers will show better audio quality for "Modern Radio"
+#
+# This configuration allows you to:
+# 1. Maintain service for existing DAB receivers
+# 2. Provide improved quality for DAB+ capable receivers
+# 3. Gradually transition audience to DAB+ over time

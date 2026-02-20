@@ -59,15 +59,30 @@ class EdiEncoder:
         tag_items.append(self._create_tist_tag(frame))
 
         # 4. Add estN TAGs (subchannel streams)
+        # Extract individual subchannel data from MST blob
+        mst_offset = 0
         for idx, subchannel in enumerate(self.ensemble.subchannels):
-            if idx < len(frame.subchannel_data_list):
-                mst_data = frame.subchannel_data_list[idx]
+            # Calculate subchannel size from STC header
+            if idx < len(frame.stc_headers):
+                stc = frame.stc_headers[idx]
+                # STL (Stream Data Length) is in 8-byte units
+                subchannel_size = stc.stl * 8
+            else:
+                # Fallback: estimate from bitrate
+                subchannel_size = subchannel.bitrate * 3
+                # Pad to 8-byte boundary
+                subchannel_size = ((subchannel_size + 7) // 8) * 8
+
+            # Extract this subchannel's data from MST blob
+            if mst_offset + subchannel_size <= len(frame.subchannel_data):
+                mst_data = frame.subchannel_data[mst_offset:mst_offset + subchannel_size]
                 tag_items.append(self._create_est_tag(
                     index=idx + 1,  # 1-based
                     subchannel=subchannel,
                     mst_data=mst_data,
                     frame=frame
                 ))
+                mst_offset += subchannel_size
 
         # 5. Assemble TAG packet
         tag_packet = TagPacket(tag_items=tag_items, alignment=8)
@@ -160,8 +175,8 @@ class EdiEncoder:
         """
         # Get STC for this subchannel from frame
         stc = None
-        if index - 1 < len(frame.stc_list):
-            stc = frame.stc_list[index - 1]
+        if index - 1 < len(frame.stc_headers):
+            stc = frame.stc_headers[index - 1]
 
         # Calculate TPL (Time Profile Level)
         # TPL is related to protection level and subchannel size
@@ -170,7 +185,7 @@ class EdiEncoder:
 
         # Get start address and scid from STC if available
         if stc:
-            sad = stc.stl_h  # Start address (high bits)
+            sad = stc.start_address
             scid = stc.scid
         else:
             sad = subchannel.start_address

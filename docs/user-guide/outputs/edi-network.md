@@ -2,23 +2,19 @@
 
 Complete guide to streaming DAB multiplex data via EDI (Ensemble Data Interface) over IP networks.
 
-!!! info "Implementation Status"
-    **Currently Available (v0.x):**
+!!! success "Implementation Complete"
+    **All features available (v0.x):**
 
     - ✅ Full EDI protocol implementation (TAG items, AF packets)
     - ✅ UDP output (unicast & multicast)
     - ✅ TCP output (client & server modes)
     - ✅ TIST timestamp synchronization
     - ✅ PFT fragmentation with Reed-Solomon FEC
-    - ✅ Programmatic API (Python configuration)
+    - ✅ CLI integration (--edi, --pft, --tist flags)
+    - ✅ Example YAML configurations
+    - ✅ Validation tools (edi_analyzer, edi_generator)
 
-    **Coming Soon:**
-
-    - ⏳ CLI arguments (--edi, --edi-destination, etc.) - Phase 4
-    - ⏳ YAML configuration schema - Phase 4
-    - ⏳ Example configuration files - Phase 4
-
-    For now, use the programmatic API as shown in the [Integration Examples](#integration-examples) section below. CLI arguments will be added in the next release.
+    Use CLI flags for quick start or programmatic API for advanced control. See examples below.
 
 ## Overview
 

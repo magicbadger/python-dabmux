@@ -1,0 +1,78 @@
+# EDI UDP Unicast Example
+#
+# Simple UDP streaming to a single modulator/transmitter.
+# Use this for point-to-point connections on reliable networks.
+#
+# Usage:
+#   python -m dabmux.cli -c examples/edi_udp_unicast.yaml \
+#     --edi udp://192.168.1.100:12000 --continuous
+
+ensemble:
+  id: '0xCE15'
+  ecc: '0xE1'
+  label:
+    text: 'EDI UDP Example'
+    short: 'EDI UDP'
+  transmission_mode: 'I'
+
+subchannels:
+  - uid: 'audio_main'
+    id: 0
+    type: 'dabplus'
+    bitrate: 48
+    protection:
+      level: 2
+      form: 'EEP'
+      option: 'A'
+    input_uri: 'file://audio/main_48k.dabp'
+
+services:
+  - uid: 'radio_service'
+    id: '0x5001'
+    label:
+      text: 'Example Radio'
+      short: 'Radio'
+    pty: 10  # Pop music
+    language: 9  # English
+
+components:
+  - uid: 'audio_component'
+    service_id: '0x5001'
+    subchannel_id: 0
+    type: 'audio'
+    label:
+      text: 'Main Programme'
+      short: 'Main'
+
+# EDI Output Configuration (Programmatic API)
+# Note: You can configure EDI via YAML (shown below) OR via CLI arguments
+# CLI arguments override YAML configuration
+#
+# edi_output:
+#   enabled: true
+#   protocol: 'udp'
+#   destination: '192.168.1.100:12000'
+#   enable_pft: false
+#   enable_tist: true
+
+# To use this configuration:
+#
+# 1. Prepare your audio:
+#    ffmpeg -i input.mp3 -c:a libfdk_aac -profile:a aac_he_v2 \
+#           -b:a 48k -ar 48000 -f adts audio/main_48k.aac
+#    odr-audioenc -i audio/main_48k.aac -o audio/main_48k.dabp \
+#                 -b 48 -f raw
+#
+# 2. Stream to modulator:
+#    python -m dabmux.cli -c examples/edi_udp_unicast.yaml \
+#      --edi udp://192.168.1.100:12000 --continuous
+#
+# 3. The modulator at 192.168.1.100 should be configured to:
+#    - Listen on UDP port 12000
+#    - Expect EDI-AF packets (no PFT)
+#    - Process TIST timestamps if enabled
+#
+# Network Requirements:
+# - Reliable LAN connection (< 1% packet loss)
+# - ~600 kbps bandwidth
+# - Low latency (< 10ms preferred)

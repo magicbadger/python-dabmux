@@ -2,15 +2,15 @@
 
 Overview of output formats for distributing DAB multiplex data.
 
-!!! info "EDI Implementation Status"
-    **EDI protocol implementation is complete** (v0.x) with full UDP/TCP support, TIST timestamps, and PFT fragmentation. However, **CLI arguments are not yet available**. For now, use the programmatic API shown in [EDI Network Output](edi-network.md#integration-examples). CLI support coming in next release.
+!!! success "EDI Implementation Complete"
+    **EDI protocol fully implemented** (v0.x) with UDP/TCP support, TIST timestamps, PFT fragmentation, and **CLI integration**. Use `--edi` flag to stream EDI over network. See [EDI Network Output](edi-network.md) for examples and configuration.
 
 ## What Are Outputs?
 
 Outputs deliver the generated ETI (Ensemble Transport Interface) frames to transmitters or recording. python-dabmux supports two output types:
 
 - **ETI files:** Write frames to disk (✅ CLI available)
-- **EDI network:** Stream frames over IP with optional error correction (⚙️ API available, CLI pending)
+- **EDI network:** Stream frames over IP with optional error correction (✅ CLI available)
 
 ---
 

@@ -1,0 +1,101 @@
+# EDI TCP Studio-to-Transmitter Link Example
+#
+# Reliable TCP connection from studio to transmitter.
+# Use this for guaranteed delivery over WAN/Internet links.
+#
+# Usage:
+#   python -m dabmux.cli -c examples/edi_tcp_stl.yaml \
+#     --edi tcp://transmitter.example.com:12000 --continuous
+
+ensemble:
+  id: '0xCE17'
+  ecc: '0xE1'
+  label:
+    text: 'TCP STL Example'
+    short: 'TCP STL'
+  transmission_mode: 'I'
+
+subchannels:
+  - uid: 'audio_main'
+    id: 0
+    type: 'dabplus'
+    bitrate: 64
+    protection:
+      level: 3
+      form: 'EEP'
+      option: 'A'
+    input_uri: 'file://audio/main_64k.dabp'
+
+services:
+  - uid: 'radio_service'
+    id: '0x5001'
+    label:
+      text: 'Studio Stream'
+      short: 'Studio'
+    pty: 1  # News
+    language: 9  # English
+
+components:
+  - uid: 'audio_component'
+    service_id: '0x5001'
+    subchannel_id: 0
+    type: 'audio'
+    label:
+      text: 'Main Programme'
+      short: 'Main'
+
+# EDI TCP Client Configuration
+# Connects to remote TCP server (transmitter site)
+#
+# edi_output:
+#   enabled: true
+#   protocol: 'tcp'
+#   destination: 'transmitter.example.com:12000'
+#   tcp_mode: 'client'  # Connect to remote server
+#   enable_tist: true
+
+# To use this configuration:
+#
+# 1. Prepare your audio files
+#
+# 2. Ensure transmitter is listening:
+#    - Transmitter must run TCP server on port 12000
+#    - Or use EDI receiver software in server mode
+#
+# 3. Connect from studio:
+#    python -m dabmux.cli -c examples/edi_tcp_stl.yaml \
+#      --edi tcp://192.168.1.100:12000 --continuous
+#
+# Network Requirements:
+# - TCP connectivity (firewall allows outbound port 12000)
+# - ~600 kbps sustained bandwidth
+# - Can tolerate higher latency (20-50ms acceptable)
+#
+# Advantages:
+# - Guaranteed delivery (no packet loss)
+# - Automatic retransmission
+# - Works over Internet/WAN
+# - No PFT needed (TCP handles reliability)
+#
+# Disadvantages:
+# - Higher latency than UDP
+# - Single connection only (no multicast)
+# - Connection overhead
+#
+# Use Cases:
+# - Studio-to-transmitter over Internet
+# - Remote broadcasting
+# - Long-distance links
+# - Networks with packet loss
+#
+# Security Recommendations:
+# - Use VPN for Internet connections
+# - Firewall: Allow outbound TCP port 12000
+# - Monitor connection status
+# - Have backup link ready
+#
+# Troubleshooting:
+# - Connection refused: Check transmitter is listening
+# - Connection drops: Check network stability
+# - High latency: Consider link capacity
+# - Buffering issues: Adjust transmitter buffer size

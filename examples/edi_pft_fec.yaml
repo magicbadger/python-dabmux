@@ -1,0 +1,162 @@
+# EDI with PFT and FEC Example
+#
+# UDP streaming with Protocol, Fragmentation and Transport (PFT).
+# Includes Reed-Solomon forward error correction for lossy networks.
+#
+# Usage:
+#   python -m dabmux.cli -c examples/edi_pft_fec.yaml \
+#     --edi udp://192.168.1.100:12000 --pft --pft-fec 5 --continuous
+
+ensemble:
+  id: '0xCE19'
+  ecc: '0xE1'
+  label:
+    text: 'PFT FEC Example'
+    short: 'PFT'
+  transmission_mode: 'I'
+
+subchannels:
+  - uid: 'audio_hq'
+    id: 0
+    type: 'dabplus'
+    bitrate: 96
+    protection:
+      level: 3
+      form: 'EEP'
+      option: 'A'
+    input_uri: 'file://audio/hq_96k.dabp'
+
+services:
+  - uid: 'hq_service'
+    id: '0x5001'
+    label:
+      text: 'High Quality Stream'
+      short: 'HQ'
+    pty: 7  # Classical music
+    language: 9  # English
+
+components:
+  - uid: 'hq_audio'
+    service_id: '0x5001'
+    subchannel_id: 0
+    type: 'audio'
+    label:
+      text: 'HQ Programme'
+      short: 'HQ'
+
+# EDI PFT Configuration
+# Fragments large packets and adds FEC parity for error recovery
+#
+# edi_output:
+#   enabled: true
+#   protocol: 'udp'
+#   destination: '192.168.1.100:12000'
+#   enable_pft: true
+#   pft_fec: 5  # Can recover up to 5 lost fragments per frame
+#   pft_fragment_size: 1400  # MTU-based (1500 - 20 IP - 8 UDP - overhead)
+#   enable_tist: true
+
+# PFT FEC Configuration Guide:
+#
+# pft_fec value determines error recovery capability:
+# - 0: No FEC (just fragmentation)
+# - 1-2: Light protection (~10-20% overhead)
+# - 3-5: Medium protection (~30-50% overhead)
+# - 6-7: Heavy protection (~60-70% overhead)
+#
+# Formula: Can recover N consecutive lost fragments
+# where N = pft_fec value
+#
+# Example scenarios:
+#
+# 1. Reliable LAN (< 0.1% loss):
+#    --pft-fec 0  # No FEC needed, just fragmentation
+#
+# 2. Standard LAN (0.1-1% loss):
+#    --pft-fec 2  # Light FEC, minimal overhead
+#
+# 3. Unreliable network (1-5% loss):
+#    --pft-fec 3  # Medium FEC, good balance
+#
+# 4. Lossy link (5-10% loss):
+#    --pft-fec 5  # Heavy FEC, higher overhead
+#
+# 5. Very lossy (10-15% loss):
+#    --pft-fec 7  # Maximum FEC (consider TCP instead)
+
+# To use this configuration:
+#
+# 1. Prepare high-quality audio:
+#    ffmpeg -i input.flac -c:a libfdk_aac -profile:a aac_he_v2 \
+#           -b:a 96k -ar 48000 -f adts audio/hq_96k.aac
+#    odr-audioenc -i audio/hq_96k.aac -o audio/hq_96k.dabp \
+#                 -b 96 -f raw
+#
+# 2. Stream with PFT+FEC:
+#    python -m dabmux.cli -c examples/edi_pft_fec.yaml \
+#      --edi udp://192.168.1.100:12000 --pft --pft-fec 5 --continuous
+#
+# 3. Receiver must support:
+#    - PFT deframentation
+#    - Reed-Solomon FEC decoding
+#    - Fragment reassembly
+#
+# Bandwidth Requirements:
+#
+# Base ETI (Mode I): ~512 kbps
+# + EDI overhead: ~15% = ~590 kbps
+# + PFT FEC overhead:
+#   - FEC 2: +20% = ~710 kbps
+#   - FEC 3: +30% = ~770 kbps
+#   - FEC 5: +50% = ~885 kbps
+#   - FEC 7: +70% = ~1000 kbps
+#
+# Fragment Size Selection:
+#
+# Default 1400 bytes is optimal for most networks:
+# - Fits in standard MTU (1500 bytes)
+# - Leaves room for IP/UDP headers
+# - Avoids IP fragmentation
+#
+# Adjust if needed:
+# - Smaller MTU network: Use 1000-1200
+# - Jumbo frames: Use up to 8000
+# - Always leave 100 bytes for headers
+#
+# Network Requirements:
+# - UDP capable (firewall allows UDP port)
+# - Sufficient bandwidth (see above)
+# - Can tolerate packet loss < FEC capability
+# - No reordering (or minimal)
+#
+# Advantages:
+# - Recovers from packet loss automatically
+# - No retransmission needed
+# - Low latency (forward error correction)
+# - Works with unreliable networks
+#
+# When to Use PFT+FEC:
+# - Network has packet loss > 0.5%
+# - Long-distance links
+# - Wireless links
+# - Internet distribution
+# - Multicast scenarios
+#
+# When NOT to Use PFT+FEC:
+# - Reliable LAN with < 0.1% loss
+# - When bandwidth is limited
+# - When TCP is acceptable (use TCP instead)
+# - Very lossy networks > 15% (TCP better)
+#
+# Monitoring:
+# - Watch packet loss percentage
+# - Monitor FEC correction rate
+# - Adjust FEC depth based on loss
+# - Alert if corrections exceed capability
+#
+# Optimization Tips:
+# - Start with FEC 3, adjust based on loss
+# - Use QoS to prioritize EDI traffic
+# - Monitor and log correction statistics
+# - Test with various FEC levels
+# - Balance protection vs bandwidth

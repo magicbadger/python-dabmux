@@ -1,0 +1,143 @@
+# EDI TCP Server Example
+#
+# TCP server broadcasting to multiple connected clients.
+# Use this when you want the multiplexer to accept incoming connections.
+#
+# Usage:
+#   python -m dabmux.cli -c examples/edi_tcp_server.yaml \
+#     --edi tcp://0.0.0.0:12000 --edi-tcp-mode server --continuous
+
+ensemble:
+  id: '0xCE18'
+  ecc: '0xE1'
+  label:
+    text: 'TCP Server Demo'
+    short: 'TCPSRV'
+  transmission_mode: 'I'
+
+subchannels:
+  - uid: 'audio_main'
+    id: 0
+    type: 'dabplus'
+    bitrate: 48
+    protection:
+      level: 2
+      form: 'EEP'
+      option: 'A'
+    input_uri: 'file://audio/main_48k.dabp'
+
+  - uid: 'audio_secondary'
+    id: 1
+    type: 'dabplus'
+    bitrate: 48
+    protection:
+      level: 2
+      form: 'EEP'
+      option: 'A'
+    input_uri: 'file://audio/secondary_48k.dabp'
+
+services:
+  - uid: 'service1'
+    id: '0x5001'
+    label:
+      text: 'Channel One'
+      short: 'CH1'
+    pty: 10  # Pop music
+    language: 9  # English
+
+  - uid: 'service2'
+    id: '0x5002'
+    label:
+      text: 'Channel Two'
+      short: 'CH2'
+    pty: 4  # Rock music
+    language: 9  # English
+
+components:
+  - uid: 'component1'
+    service_id: '0x5001'
+    subchannel_id: 0
+    type: 'audio'
+    label:
+      text: 'Channel One Audio'
+      short: 'CH1'
+
+  - uid: 'component2'
+    service_id: '0x5002'
+    subchannel_id: 1
+    type: 'audio'
+    label:
+      text: 'Channel Two Audio'
+      short: 'CH2'
+
+# EDI TCP Server Configuration
+# Listens for incoming connections from clients
+#
+# edi_output:
+#   enabled: true
+#   protocol: 'tcp'
+#   destination: '0.0.0.0:12000'  # Listen on all interfaces
+#   tcp_mode: 'server'  # Accept incoming connections
+#   enable_tist: true
+
+# To use this configuration:
+#
+# 1. Prepare your audio files
+#
+# 2. Start multiplexer in server mode:
+#    python -m dabmux.cli -c examples/edi_tcp_server.yaml \
+#      --edi tcp://0.0.0.0:12000 --edi-tcp-mode server --continuous
+#
+# 3. Connect clients to the server:
+#    # From modulator/receiver:
+#    edi-receiver tcp://multiplexer.example.com:12000
+#
+#    # Multiple clients can connect simultaneously
+#    # Each client receives identical stream
+#
+# Network Requirements:
+# - Firewall allows inbound TCP port 12000
+# - ~600 kbps per connected client
+# - Server must be reachable from clients
+#
+# Advantages:
+# - Multiple clients can connect
+# - Clients can connect/disconnect dynamically
+# - Multiplexer controls distribution
+# - Guaranteed delivery to each client
+#
+# Disadvantages:
+# - Each client adds bandwidth load
+# - Server must handle multiple connections
+# - Not as efficient as multicast for many receivers
+#
+# Use Cases:
+# - Central distribution point
+# - Laboratory/test environment
+# - Dynamic receiver configuration
+# - Development and debugging
+#
+# Best Practices:
+# - Limit number of concurrent clients (5-10 recommended)
+# - Monitor client connections
+# - Log client connect/disconnect events
+# - Use firewall to restrict access
+# - Consider load balancing for many clients
+#
+# Security:
+# - Bind to specific interface (not 0.0.0.0) in production
+# - Use firewall to whitelist client IPs
+# - Monitor for unauthorized connections
+# - Consider VPN for remote clients
+#
+# Monitoring:
+# - Check connected client count
+# - Monitor bandwidth per client
+# - Watch for connection errors
+# - Alert on unexpected disconnections
+#
+# Troubleshooting:
+# - Clients can't connect: Check firewall rules
+# - High latency: Check server load and bandwidth
+# - Disconnections: Check network stability
+# - Performance issues: Limit concurrent clients

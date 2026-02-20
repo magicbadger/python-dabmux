@@ -1,0 +1,120 @@
+# EDI UDP Multicast Example
+#
+# Multicast streaming to multiple receivers simultaneously.
+# Use this for one-to-many distribution (e.g., multiple transmitters).
+#
+# Usage:
+#   python -m dabmux.cli -c examples/edi_udp_multicast.yaml \
+#     --edi udp://239.1.2.3:12000 --pft --pft-fec 3 --continuous
+
+ensemble:
+  id: '0xCE16'
+  ecc: '0xE1'
+  label:
+    text: 'Multicast EDI'
+    short: 'MCAST'
+  transmission_mode: 'I'
+
+subchannels:
+  - uid: 'audio_main'
+    id: 0
+    type: 'dabplus'
+    bitrate: 72
+    protection:
+      level: 2
+      form: 'EEP'
+      option: 'A'
+    input_uri: 'file://audio/main_72k.dabp'
+
+  - uid: 'audio_backup'
+    id: 1
+    type: 'dabplus'
+    bitrate: 48
+    protection:
+      level: 2
+      form: 'EEP'
+      option: 'A'
+    input_uri: 'file://audio/backup_48k.dabp'
+
+services:
+  - uid: 'primary_service'
+    id: '0x5001'
+    label:
+      text: 'Primary Radio'
+      short: 'Primary'
+    pty: 10  # Pop music
+    language: 9  # English
+
+  - uid: 'backup_service'
+    id: '0x5002'
+    label:
+      text: 'Backup Radio'
+      short: 'Backup'
+    pty: 10  # Pop music
+    language: 9  # English
+
+components:
+  - uid: 'primary_audio'
+    service_id: '0x5001'
+    subchannel_id: 0
+    type: 'audio'
+    label:
+      text: 'Main Programme'
+      short: 'Main'
+
+  - uid: 'backup_audio'
+    service_id: '0x5002'
+    subchannel_id: 1
+    type: 'audio'
+    label:
+      text: 'Backup Programme'
+      short: 'Backup'
+
+# EDI Multicast Configuration
+# Use PFT with FEC for reliable multicast distribution
+#
+# edi_output:
+#   enabled: true
+#   protocol: 'udp'
+#   destination: '239.1.2.3:12000'  # Multicast group
+#   enable_pft: true
+#   pft_fec: 3  # FEC depth (can recover 3 lost fragments)
+#   pft_fragment_size: 1400
+#   enable_tist: true
+
+# To use this configuration:
+#
+# 1. Prepare your audio files (see edi_udp_unicast.yaml)
+#
+# 2. Configure network for multicast:
+#    # Linux: Enable multicast routing
+#    sudo sysctl -w net.ipv4.conf.all.mc_forwarding=1
+#
+#    # Add multicast route (if needed)
+#    sudo route add -net 239.0.0.0 netmask 255.0.0.0 dev eth0
+#
+# 3. Stream to multicast group:
+#    python -m dabmux.cli -c examples/edi_udp_multicast.yaml \
+#      --edi udp://239.1.2.3:12000 --pft --pft-fec 3 --continuous
+#
+# 4. Configure receivers to join multicast group:
+#    - Each modulator joins 239.1.2.3 on port 12000
+#    - All receivers get identical stream
+#    - PFT+FEC ensures reliability
+#
+# Network Requirements:
+# - Multicast-capable switches and routers
+# - IGMP snooping enabled
+# - ~900 kbps bandwidth (with PFT+FEC overhead)
+# - Receivers must join multicast group
+#
+# Advantages:
+# - One encoder → many receivers
+# - Efficient bandwidth usage
+# - Synchronized distribution
+#
+# Best Practices:
+# - Always use PFT with FEC for multicast
+# - Use TTL > 1 if crossing routers
+# - Monitor packet loss and adjust FEC depth
+# - Use QoS to prioritize multicast traffic

@@ -11,8 +11,7 @@ import structlog
 from dabmux.config import load_config
 from dabmux.mux import DabMultiplexer
 from dabmux.output.file import FileOutput, EtiFileType
-from dabmux.output.edi import EdiOutput
-from dabmux.edi.pft import PFTConfig
+from dabmux.core.mux_elements import EdiOutputConfig
 from dabmux.input.file import MPEGFileInput, RawFileInput
 
 logger = structlog.get_logger(__name__)
@@ -43,17 +42,26 @@ class DabMuxCLI:
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog='''
 Examples:
-  # Multiplex from configuration file
-  dabmux -c config.yaml -o output.eti
+  # Generate ETI file
+  dabmux -c config.yaml -o output.eti -n 1000
 
-  # Output EDI over UDP
-  dabmux -c config.yaml --edi udp://239.1.2.3:12000
+  # Stream EDI over UDP
+  dabmux -c config.yaml --edi udp://192.168.1.100:12000
 
-  # Output EDI with PFT
-  dabmux -c config.yaml --edi udp://239.1.2.3:12000 --pft
+  # Stream EDI with PFT and FEC
+  dabmux -c config.yaml --edi udp://239.1.2.3:12000 --pft --pft-fec 3
 
-  # Generate frames continuously
-  dabmux -c config.yaml -o output.eti --continuous
+  # Stream EDI over TCP (client mode)
+  dabmux -c config.yaml --edi tcp://192.168.1.100:12000
+
+  # Stream EDI over TCP (server mode)
+  dabmux -c config.yaml --edi tcp://0.0.0.0:12000 --edi-tcp-mode server
+
+  # Output to file AND stream to network
+  dabmux -c config.yaml -o archive.eti --edi udp://192.168.1.100:12000
+
+  # Continuous multiplexing with TIST timestamps
+  dabmux -c config.yaml --edi udp://192.168.1.100:12000 --tist --continuous
 
   # Show version
   dabmux --version
@@ -69,13 +77,12 @@ Examples:
         )
 
         # Output options
-        output_group = parser.add_mutually_exclusive_group(required=True)
-        output_group.add_argument(
+        parser.add_argument(
             '-o', '--output',
             metavar='FILE',
             help='Output ETI file'
         )
-        output_group.add_argument(
+        parser.add_argument(
             '--edi',
             metavar='URL',
             help='EDI output URL (udp://host:port or tcp://host:port)'
@@ -91,21 +98,29 @@ Examples:
 
         # EDI options
         parser.add_argument(
+            '--edi-tcp-mode',
+            choices=['client', 'server'],
+            default='client',
+            help='TCP mode: client (connect) or server (listen) - for tcp:// URLs only (default: client)'
+        )
+        parser.add_argument(
+            '--edi-source-port',
+            type=int,
+            default=0,
+            metavar='PORT',
+            help='UDP source port (0 = random) - for udp:// URLs only (default: 0)'
+        )
+        parser.add_argument(
             '--pft',
             action='store_true',
             help='Enable PFT (Protection, Fragmentation and Transport) for EDI'
         )
         parser.add_argument(
             '--pft-fec',
-            action='store_true',
-            help='Enable FEC for PFT (requires --pft)'
-        )
-        parser.add_argument(
-            '--pft-fec-m',
             type=int,
-            default=2,
-            metavar='M',
-            help='PFT FEC: max recoverable fragments (default: 2)'
+            default=0,
+            metavar='DEPTH',
+            help='PFT FEC depth (0-7, 0=disabled) - number of parity fragments (default: 0)'
         )
         parser.add_argument(
             '--pft-fragment-size',
@@ -249,64 +264,79 @@ Examples:
                     error=str(e)
                 )
 
-    def create_output(self, args: argparse.Namespace):
+    def configure_edi_output(self, args: argparse.Namespace, ensemble):
         """
-        Create output based on arguments.
+        Configure EDI output in the ensemble based on CLI arguments.
+
+        Args:
+            args: Parsed arguments
+            ensemble: Ensemble configuration
+
+        Modifies ensemble.edi_output in place.
+        """
+        if not args.edi:
+            return
+
+        # Parse URL
+        url = args.edi
+        if not (url.startswith('udp://') or url.startswith('tcp://')):
+            raise ValueError(f"Invalid EDI URL: {url} (must start with udp:// or tcp://)")
+
+        protocol = 'udp' if url.startswith('udp://') else 'tcp'
+
+        # Extract host and port
+        url_parts = url.split('://', 1)[1]
+        if ':' in url_parts:
+            host, port_str = url_parts.rsplit(':', 1)
+            port = int(port_str)
+            destination = f"{host}:{port}"
+        else:
+            raise ValueError(f"Invalid EDI URL: {url} (must include port)")
+
+        # Create EDI configuration
+        ensemble.edi_output = EdiOutputConfig(
+            enabled=True,
+            protocol=protocol,
+            destination=destination,
+            tcp_mode=args.edi_tcp_mode,
+            source_port=args.edi_source_port,
+            enable_pft=args.pft,
+            pft_fec=args.pft_fec,
+            pft_fragment_size=args.pft_fragment_size,
+            enable_tist=args.tist
+        )
+
+        logger.info("EDI output configured",
+                   protocol=protocol,
+                   destination=destination,
+                   tcp_mode=args.edi_tcp_mode if protocol == 'tcp' else None,
+                   pft=args.pft,
+                   fec=args.pft_fec if args.pft else 0)
+
+    def create_file_output(self, args: argparse.Namespace):
+        """
+        Create file output if requested.
 
         Args:
             args: Parsed arguments
 
         Returns:
-            Output instance (FileOutput or EdiOutput)
+            FileOutput instance or None
         """
-        if args.output:
-            # File output
-            output = FileOutput()
-            # Set file type before opening
-            format_map = {
-                'raw': EtiFileType.RAW,
-                'streamed': EtiFileType.STREAMED,
-                'framed': EtiFileType.FRAMED
-            }
-            output._file_type = format_map[args.format]
-            logger.info("Output configured", file=args.output, format=args.format)
-            return output
+        if not args.output:
+            return None
 
-        elif args.edi:
-            # EDI output
-            # Parse URL
-            url = args.edi
-            if not (url.startswith('udp://') or url.startswith('tcp://')):
-                raise ValueError(f"Invalid EDI URL: {url} (must start with udp:// or tcp://)")
-
-            # Extract host and port
-            url_parts = url.split('://', 1)[1]
-            if ':' in url_parts:
-                host, port_str = url_parts.rsplit(':', 1)
-                port = int(port_str)
-            else:
-                raise ValueError(f"Invalid EDI URL: {url} (must include port)")
-
-            # Create PFT config if requested
-            pft_config = None
-            if args.pft:
-                pft_config = PFTConfig(
-                    fec=args.pft_fec,
-                    fec_m=args.pft_fec_m if args.pft_fec else 0,
-                    max_fragment_size=args.pft_fragment_size
-                )
-
-            output = EdiOutput(
-                dest_addr=host,
-                dest_port=port,
-                enable_pft=args.pft,
-                pft_config=pft_config
-            )
-            logger.info("EDI output configured",
-                       dest=f"{host}:{port}",
-                       pft=args.pft,
-                       fec=args.pft_fec if args.pft else False)
-            return output
+        # File output
+        output = FileOutput()
+        # Set file type before opening
+        format_map = {
+            'raw': EtiFileType.RAW,
+            'streamed': EtiFileType.STREAMED,
+            'framed': EtiFileType.FRAMED
+        }
+        output._file_type = format_map[args.format]
+        logger.info("File output configured", file=args.output, format=args.format)
+        return output
 
     def run(self, args: list = None) -> int:
         """
@@ -333,14 +363,21 @@ Examples:
                        services=len(ensemble.services),
                        subchannels=len(ensemble.subchannels))
 
-            # Create multiplexer
+            # Configure EDI output from CLI arguments
+            self.configure_edi_output(parsed_args, ensemble)
+
+            # Create multiplexer (will auto-setup EDI if configured)
             self.mux = DabMultiplexer(ensemble)
 
             # Create and add input sources
             self.create_inputs()
 
-            # Create output
-            output = self.create_output(parsed_args)
+            # Create file output if requested
+            file_output = self.create_file_output(parsed_args)
+
+            # Validate that at least one output is configured
+            if not file_output and not ensemble.edi_output:
+                raise ValueError("No output configured (use -o for file or --edi for network)")
 
             # Setup signal handler for graceful shutdown
             def signal_handler(signum, frame):
@@ -350,11 +387,9 @@ Examples:
             signal.signal(signal.SIGINT, signal_handler)
             signal.signal(signal.SIGTERM, signal_handler)
 
-            # Open output
-            if isinstance(output, FileOutput):
-                output.open(parsed_args.output)
-            else:
-                output.open()
+            # Open file output if configured
+            if file_output:
+                file_output.open(parsed_args.output)
 
             try:
                 # Determine number of frames to generate
@@ -370,19 +405,13 @@ Examples:
                 self.running = True
 
                 while self.running:
-                    # Generate frame
+                    # Generate frame (EDI automatically sent if configured)
                     frame = self.mux.generate_frame()
 
-                    # Write to output
-                    if isinstance(output, FileOutput):
-                        # Serialize frame to bytes
+                    # Write to file output if configured
+                    if file_output:
                         frame_bytes = frame.pack()
-                        output.write(frame_bytes)
-                    elif isinstance(output, EdiOutput):
-                        # Convert to EDI (would need EdiEncoder here)
-                        # For now, just log
-                        logger.warning("EDI encoding not fully integrated yet")
-                        break
+                        file_output.write(frame_bytes)
 
                     frame_count += 1
 
@@ -390,10 +419,20 @@ Examples:
                     if num_frames is not None and frame_count >= num_frames:
                         break
 
+                    # Progress logging every 100 frames
+                    if frame_count % 100 == 0:
+                        logger.debug(f"Generated {frame_count} frames...")
+
                 logger.info(f"Generated {frame_count} frame(s)")
 
             finally:
-                output.close()
+                # Close file output
+                if file_output:
+                    file_output.close()
+
+                # Close EDI output (handled by multiplexer cleanup)
+                if self.mux.edi_output:
+                    self.mux.edi_output.close()
 
             return 0
 

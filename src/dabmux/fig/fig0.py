@@ -526,6 +526,218 @@ class FIG0_2(FIGBase):
         return 2
 
 
+class FIG0_3(FIGBase):
+    """
+    FIG 0/3: Service Component in Packet Mode.
+
+    Describes service components in packet mode (data services using packet addressing).
+    Per ETSI EN 300 401 Section 8.1.4.
+
+    Similar to FIG 0/2 but for packet mode components (TMid=01).
+    Component data includes packet address (10 bits) for routing.
+
+    Byte Structure per component (3 bytes):
+    - Byte 0: TMid (2) | DSCTy (6)
+    - Byte 1: SubChId (6) | Packet Address High (2)
+    - Byte 2: Packet Address Low (8 bits)
+    """
+
+    def __init__(self, ensemble: DabEnsemble) -> None:
+        """
+        Initialize FIG 0/3.
+
+        Args:
+            ensemble: Ensemble configuration
+        """
+        super().__init__()
+        self.ensemble = ensemble
+        self.service_index = 0
+        self.transmitting_programme = True  # Alternate between programme and data services
+
+    def fill(self, buf: bytearray, max_size: int) -> FillStatus:
+        """
+        Fill buffer with FIG 0/3 data.
+
+        Args:
+            buf: Buffer to write into
+            max_size: Maximum bytes available
+
+        Returns:
+            Fill status
+        """
+        status = FillStatus()
+
+        if max_size < 2:
+            return status
+
+        # Get services with packet mode components
+        services = self._get_current_service_list()
+
+        if not services:
+            # Check if there are services in the other list
+            if not self._get_other_service_list():
+                # No services of either type
+                status.complete_fig_transmitted = True
+                return status
+            else:
+                # Switch to other type
+                self.transmitting_programme = not self.transmitting_programme
+                services = self._get_current_service_list()
+                if not services:
+                    # Still nothing after switch (shouldn't happen)
+                    status.complete_fig_transmitted = True
+                    return status
+
+        # Reserve space for header
+        pos = 2
+        bytes_written_data = 0
+
+        while self.service_index < len(services):
+            service = services[self.service_index]
+
+            # Find packet mode components for this service
+            components = [c for c in self.ensemble.components
+                         if c.service_id == service.id and c.is_packet_mode]
+            num_components = len(components)
+
+            if num_components == 0:
+                self.service_index += 1
+                continue
+
+            # Calculate size needed
+            # Service header: 3 or 5 bytes (depending on SId size)
+            # Each component: 3 bytes (vs 2 bytes in FIG 0/2)
+            is_programme = self.transmitting_programme
+            service_header_size = 3 if is_programme else 5
+            total_size = service_header_size + (num_components * 3)
+
+            if pos + total_size > max_size:
+                break
+
+            # Write service header
+            if is_programme:
+                # Programme service (16-bit SId): 3 bytes
+                # Bytes 0-1: SId (16-bit, big-endian)
+                # Byte 2: Local flag (1) | CAId (3) | NbServiceComp (4)
+                struct.pack_into('>H', buf, pos, service.id & 0xFFFF)
+                buf[pos + 2] = (0 << 7) | (0 << 4) | (num_components & 0x0F)  # Local=0, CAId=0
+                pos += 3
+                bytes_written_data += 3
+            else:
+                # Data service (32-bit SId): 5 bytes
+                # Bytes 0-3: SId (32-bit, big-endian)
+                # Byte 4: Local flag (1) | CAId (3) | NbServiceComp (4)
+                struct.pack_into('>I', buf, pos, service.id)
+                buf[pos + 4] = (0 << 7) | (0 << 4) | (num_components & 0x0F)
+                pos += 5
+                bytes_written_data += 5
+
+            # Write packet mode components
+            for component in components:
+                # Component: 3 bytes
+                # Byte 0: TMid (2) | DSCTy (6)
+                # Byte 1: SubChId (6) | Packet Address High (2)
+                # Byte 2: Packet Address Low (8 bits)
+
+                tmid = 1  # Packet mode (TMid=01)
+                dscty = component.packet.dscty & 0x3F
+                packet_addr = component.packet.address & 0x3FF  # 10 bits
+
+                logger.debug(
+                    "Encoding packet component",
+                    service_id=service.id,
+                    component_id=component.scids,
+                    subchannel_id=component.subchannel_id,
+                    packet_addr=packet_addr,
+                    dscty=dscty
+                )
+
+                buf[pos] = (tmid << 6) | dscty
+                buf[pos + 1] = ((component.subchannel_id & 0x3F) << 2) | ((packet_addr >> 8) & 0x03)
+                buf[pos + 2] = packet_addr & 0xFF
+                pos += 3
+                bytes_written_data += 3
+
+            self.service_index += 1
+
+        if bytes_written_data == 0:
+            return status
+
+        # Fill header
+        fig_type = 0
+        length = bytes_written_data + 1
+        cn = 0
+        oe = 0
+        pd = 0 if self.transmitting_programme else 1  # 0 = programme, 1 = data
+        extension = 3  # Extension 3
+
+        buf[0] = (fig_type << 5) | (length & 0x1F)
+        buf[1] = (cn << 7) | (oe << 6) | (pd << 5) | (extension & 0x1F)
+
+        status.num_bytes_written = 2 + bytes_written_data
+
+        # Check if complete
+        if self.service_index >= len(services):
+            self.service_index = 0
+
+            # Alternate between programme and data
+            if not self._get_other_service_list():
+                # No services of other type, mark complete
+                status.complete_fig_transmitted = True
+            else:
+                # Switch to other type
+                self.transmitting_programme = not self.transmitting_programme
+                if self.transmitting_programme:
+                    # Completed full cycle
+                    status.complete_fig_transmitted = True
+
+        return status
+
+    def _get_current_service_list(self) -> List[DabService]:
+        """Get current service list (programme or data) with packet components."""
+        if self.transmitting_programme:
+            # Programme services with packet components
+            services = [s for s in self.ensemble.services if s.id < 0x10000]
+        else:
+            # Data services with packet components
+            services = [s for s in self.ensemble.services if s.id >= 0x10000]
+
+        # Filter to only services that have packet mode components
+        return [s for s in services if any(
+            c.service_id == s.id and c.is_packet_mode
+            for c in self.ensemble.components
+        )]
+
+    def _get_other_service_list(self) -> List[DabService]:
+        """Get other service list (opposite of current) with packet components."""
+        if not self.transmitting_programme:
+            services = [s for s in self.ensemble.services if s.id < 0x10000]
+        else:
+            services = [s for s in self.ensemble.services if s.id >= 0x10000]
+
+        # Filter to only services that have packet mode components
+        return [s for s in services if any(
+            c.service_id == s.id and c.is_packet_mode
+            for c in self.ensemble.components
+        )]
+
+    def repetition_rate(self) -> FIGRate:
+        """FIG 0/3 transmitted at rate B (once per second)."""
+        return FIGRate.B
+
+    def priority(self) -> FIGPriority:
+        """FIG 0/3 is HIGH - required for packet service tuning."""
+        return FIGPriority.HIGH
+
+    def fig_type(self) -> int:
+        """FIG type 0."""
+        return 0
+
+    def fig_extension(self) -> int:
+        """Extension 3."""
+        return 3
+
+
 class FIG0_5(FIGBase):
     """
     FIG 0/5: Service component language.
@@ -712,6 +924,131 @@ class FIG0_13(FIGBase):
     def fig_extension(self) -> int:
         """Extension 13."""
         return 13
+
+
+class FIG0_14(FIGBase):
+    """
+    FIG 0/14: FEC Sub-channel Organization.
+
+    Declares Forward Error Correction (FEC) schemes applied to packet mode subchannels.
+    Per ETSI EN 300 401 Section 8.1.5.
+
+    Byte Structure:
+    - SubChId (6 bits) | FEC Scheme (2 bits)
+
+    FEC Scheme Codes:
+    - 00 = No FEC (reserved, should not appear in FIG 0/14)
+    - 01 = Reed-Solomon RS(204, 188)
+    - 10 = Reserved
+    - 11 = Reserved
+    """
+
+    def __init__(self, ensemble: DabEnsemble) -> None:
+        """
+        Initialize FIG 0/14.
+
+        Args:
+            ensemble: Ensemble configuration
+        """
+        super().__init__()
+        self.ensemble = ensemble
+        self.subchannel_index = 0
+
+    def fill(self, buf: bytearray, max_size: int) -> FillStatus:
+        """
+        Fill buffer with FIG 0/14 data.
+
+        Args:
+            buf: Buffer to write into
+            max_size: Maximum bytes available
+
+        Returns:
+            Fill status
+        """
+        status = FillStatus()
+
+        if max_size < 2:
+            return status
+
+        # Filter subchannels with FEC enabled (fec_scheme > 0)
+        fec_subchannels = [sc for sc in self.ensemble.subchannels if sc.fec_scheme > 0]
+
+        if not fec_subchannels:
+            # No FEC subchannels - nothing to transmit
+            status.complete_fig_transmitted = True
+            return status
+
+        # Start position for FIG header
+        start_pos = 0
+
+        # Reserve space for header (will be filled later)
+        pos = 2
+        bytes_written_data = 0
+
+        # Iterate through FEC subchannels
+        while self.subchannel_index < len(fec_subchannels):
+            subchannel = fec_subchannels[self.subchannel_index]
+
+            # Entry size: 1 byte per subchannel
+            entry_size = 1
+
+            if pos + entry_size > max_size:
+                # No more space
+                break
+
+            # Write subchannel FEC entry (1 byte)
+            # Byte 0: SubChId (bits 7-2) | FEC Scheme (bits 1-0)
+            buf[pos] = (subchannel.id << 2) | (subchannel.fec_scheme & 0x03)
+
+            logger.debug(
+                "Encoding FEC subchannel",
+                subchan_id=subchannel.id,
+                fec_scheme=subchannel.fec_scheme
+            )
+
+            pos += entry_size
+            bytes_written_data += entry_size
+            self.subchannel_index += 1
+
+        # Check if we wrote anything
+        if bytes_written_data == 0:
+            return status
+
+        # Fill header
+        fig_type = 0
+        length = bytes_written_data + 1  # +1 for second header byte
+        cn = 0  # Current/Next: 0 = current
+        oe = 0  # Other Ensemble: 0 = this ensemble
+        pd = 0  # Programme/Data: 0 = programme services
+        extension = 14  # Extension 14
+
+        buf[start_pos] = (fig_type << 5) | (length & 0x1F)
+        buf[start_pos + 1] = (cn << 7) | (oe << 6) | (pd << 5) | (extension & 0x1F)
+
+        status.num_bytes_written = 2 + bytes_written_data
+
+        # Check if we've transmitted all FEC subchannels
+        if self.subchannel_index >= len(fec_subchannels):
+            status.complete_fig_transmitted = True
+            self.subchannel_index = 0  # Reset for next cycle
+
+        return status
+
+    def repetition_rate(self) -> FIGRate:
+        """FIG 0/14 transmitted at rate B (once per second)."""
+        return FIGRate.B
+
+    def priority(self) -> FIGPriority:
+        """FIG 0/14 is NORMAL priority (complementary to FIG 0/1)."""
+        return FIGPriority.NORMAL
+
+    def fig_type(self) -> int:
+        """FIG type 0."""
+        return 0
+
+    def fig_extension(self) -> int:
+        """Extension 14."""
+        return 14
 
 
 class FIG0_17(FIGBase):

@@ -334,6 +334,11 @@ class ConfigParser:
         if 'pad' in sub_config:
             pad_config = ConfigParser._parse_pad(sub_config['pad'])
 
+        # Parse FEC scheme (for packet mode)
+        fec_scheme = int(sub_config.get('fec_scheme', 0))
+        if not 0 <= fec_scheme <= 3:
+            raise ValueError(f"Invalid FEC scheme: {fec_scheme} (must be 0-3)")
+
         return DabSubchannel(
             uid=sub_config.get('uid', sub_config.get('id', 'unknown')),
             id=sub_config.get('id', 0) if isinstance(sub_config.get('id'), int) else 0,
@@ -342,7 +347,8 @@ class ConfigParser:
             bitrate=sub_config.get('bitrate', 128),
             protection=protection,
             input_uri=sub_config.get('input', sub_config.get('input_uri', '')),
-            pad=pad_config
+            pad=pad_config,
+            fec_scheme=fec_scheme
         )
 
     @staticmethod
@@ -515,6 +521,8 @@ class ConfigParser:
     @staticmethod
     def _parse_component(comp_config: Dict[str, Any]) -> DabComponent:
         """Parse component configuration."""
+        from dabmux.core.mux_elements import DabPacketComponent, UserApplication
+
         # Parse service and subchannel IDs
         service_id = comp_config.get('service_id', comp_config.get('service', 0))
         if isinstance(service_id, str):
@@ -522,13 +530,41 @@ class ConfigParser:
 
         subchannel_id = comp_config.get('subchannel_id', comp_config.get('subchannel', 0))
 
-        return DabComponent(
+        # Check if packet mode component
+        comp_type = comp_config.get('type', 0)
+        is_packet_mode = (isinstance(comp_type, str) and comp_type.lower() == 'packet')
+
+        # Create component
+        component = DabComponent(
             uid=comp_config.get('uid', f"component_{service_id}_{subchannel_id}"),
             service_id=service_id,
             subchannel_id=subchannel_id,
             label=ConfigParser._parse_label(comp_config.get('label', {})),
-            type=comp_config.get('type', 0)
+            type=comp_type if not is_packet_mode else 0,
+            is_packet_mode=is_packet_mode
         )
+
+        # Parse packet configuration if packet mode
+        if is_packet_mode and 'packet' in comp_config:
+            packet_config = comp_config['packet']
+            component.packet = DabPacketComponent(
+                id=comp_config.get('scids', 0),
+                address=packet_config.get('address', 0),
+                datagroup=packet_config.get('datagroup', False),
+                dscty=packet_config.get('dscty', 0),
+                ca_org=packet_config.get('ca_org', 0),
+                ua_types=[]
+            )
+
+            # Parse user application types
+            for ua_dict in packet_config.get('ua_types', []):
+                ua = UserApplication(
+                    ua_type=ua_dict.get('type', 0xFFFF),
+                    xpad_app_type=ua_dict.get('xpad_type', 0)
+                )
+                component.packet.ua_types.append(ua)
+
+        return component
 
 
 def load_config(config_path: str) -> DabEnsemble:

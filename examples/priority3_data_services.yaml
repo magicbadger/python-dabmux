@@ -1,0 +1,150 @@
+# Priority 3: Data Services & Packet Mode Example Configuration
+#
+# This example demonstrates the new Priority 3 features:
+# - FIG 0/14: FEC Sub-channel Organization (Reed-Solomon protection)
+# - FIG 0/3: Service Component in Packet Mode (data services with packet addressing)
+#
+# Use case: Multi-service DAB ensemble with both audio and data services
+
+ensemble:
+  id: '0xCE15'
+  ecc: '0xE1'
+  label:
+    text: 'Data Services Demo'
+    short: 'DataDemo'
+  transmission_mode: 'I'
+
+subchannels:
+  # Audio subchannel (stream mode, no FEC)
+  - uid: 'audio_main'
+    id: 0
+    type: 'dabplus'
+    bitrate: 48
+    protection: 'EEP_3A'
+    input_uri: 'file://audio/main.dabp'
+    fec_scheme: 0  # No FEC for audio (stream mode)
+
+  # Data subchannel 1 (packet mode with FEC)
+  - uid: 'data_packet_1'
+    id: 1
+    type: 'packet'
+    bitrate: 64
+    protection: 'EEP_2A'
+    input_uri: 'file://data/packets_1.bin'
+    fec_scheme: 1  # RS(204, 188) FEC protection
+
+  # Data subchannel 2 (packet mode with FEC)
+  - uid: 'data_packet_2'
+    id: 2
+    type: 'packet'
+    bitrate: 32
+    protection: 'EEP_3A'
+    input_uri: 'file://data/packets_2.bin'
+    fec_scheme: 1  # RS(204, 188) FEC protection
+
+services:
+  # Programme service (audio)
+  - uid: 'radio_service'
+    id: '0x5001'
+    label:
+      text: 'Example Radio'
+      short: 'Radio'
+    pty: 10  # Pop Music
+    language: 9  # English
+
+  # Data service (packet mode)
+  - uid: 'multimedia_service'
+    id: '0xD0000001'  # Data service ID (32-bit, starts with 0xD)
+    label:
+      text: 'Multimedia Data'
+      short: 'Multimedia'
+    pty: 0  # No PTY for data services
+    language: 9
+
+components:
+  # Audio component (stream mode, automatically linked)
+  # Note: For simple audio-only services, no manual component needed
+  # The service → subchannel link is sufficient
+
+  # Packet components for multimedia service
+  # Multiple components can share the same subchannel using different packet addresses
+
+  - uid: 'mot_slideshow'
+    service_id: '0xD0000001'
+    subchannel_id: 1
+    type: packet
+    label:
+      text: 'MOT Slideshow'
+      short: 'Slides'
+    packet:
+      address: 0         # Packet address (0-1023)
+      datagroup: true    # Enable data groups
+      dscty: 60          # DSCTy for MOT (Multimedia Object Transfer)
+      ca_org: 0          # No conditional access
+      ua_types:
+        - type: 0x0002   # MOT slideshow (11-bit UA type)
+
+  - uid: 'epg_service'
+    service_id: '0xD0000001'
+    subchannel_id: 1
+    type: packet
+    label:
+      text: 'Program Guide'
+      short: 'EPG'
+    packet:
+      address: 1         # Different packet address for routing
+      datagroup: true
+      dscty: 24          # DSCTy for EPG (Electronic Program Guide)
+      ca_org: 0
+      ua_types:
+        - type: 0x000D   # EPG application
+
+  - uid: 'journaline_news'
+    service_id: '0xD0000001'
+    subchannel_id: 2
+    type: packet
+    label:
+      text: 'News Service'
+      short: 'News'
+    packet:
+      address: 0
+      datagroup: true
+      dscty: 5           # DSCTy for Journaline (text news)
+      ca_org: 0
+      ua_types:
+        - type: 0x0000   # Unspecified data
+
+# DSCTy Values Reference:
+# 5: Journaline (news text service)
+# 24: EPG (Electronic Program Guide)
+# 60: MOT (Multimedia Object Transfer - slideshow, files)
+# See ETSI EN 300 401 Section 6.3.1, Table 18 for complete list
+
+# FEC Scheme Values:
+# 0: No FEC
+# 1: RS(204, 188) - Standard DAB packet FEC (16 parity bytes per 188-byte block)
+# 2-3: Reserved for future FEC schemes
+
+# User Application Type Examples (11-bit values):
+# 0x0000: Unspecified data
+# 0x0001: Not used
+# 0x0002: MOT Slideshow
+# 0x0003: MOT Broadcast Web Site
+# 0x0004: TPEG
+# 0x0005: DGPS
+# 0x0006: TMC
+# 0x0007: EPG
+# 0x0008: DAB Java
+# 0x0009: DMB
+# 0x000A: MPEG-4
+# 0x000B: Audio On Demand
+# 0x000C: Leisure
+# 0x000D: EPG (alternative)
+# See ETSI TS 101 756 for complete UA types
+
+# Notes:
+# 1. Packet addresses (0-1023) allow multiple components to share one subchannel
+# 2. FEC scheme is declared per subchannel in FIG 0/14
+# 3. Packet components use FIG 0/3 (vs FIG 0/2 for stream mode)
+# 4. Data services have 32-bit Service IDs (vs 16-bit for programme services)
+# 5. DSCTy identifies the application type (MOT, EPG, Journaline, etc.)

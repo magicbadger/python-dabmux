@@ -8,7 +8,7 @@ of 30 bytes each, plus padding.
 import structlog
 from dabmux.fig.carousel import FIGCarousel
 from dabmux.core.mux_elements import DabEnsemble, TransmissionMode
-from dabmux.fig.fig0 import FIG0_0, FIG0_1, FIG0_2, FIG0_9, FIG0_10, FIG0_18, FIG0_19, FIG0_6, FIG0_21, FIG0_24
+from dabmux.fig.fig0 import FIG0_0, FIG0_1, FIG0_2, FIG0_3, FIG0_9, FIG0_10, FIG0_14, FIG0_18, FIG0_19, FIG0_6, FIG0_21, FIG0_24
 from dabmux.fig.fig1 import FIG1_0, FIG1_1
 from dabmux.utils.crc import crc16
 
@@ -50,10 +50,20 @@ class FICEncoder:
             fig0_1 = FIG0_1(self.ensemble)
             self.carousel.add_fig(fig0_1)
 
+        # FIG 0/14: FEC Sub-channel Organization (if any subchannel uses FEC)
+        if any(sc.fec_scheme > 0 for sc in self.ensemble.subchannels):
+            fig0_14 = FIG0_14(self.ensemble)
+            self.carousel.add_fig(fig0_14)
+
         # FIG 0/2: Service organization (mandatory if services exist)
         if self.ensemble.services:
             fig0_2 = FIG0_2(self.ensemble)
             self.carousel.add_fig(fig0_2)
+
+        # FIG 0/3: Service Component in Packet Mode (if any packet mode components)
+        if any(c.is_packet_mode for c in self.ensemble.components):
+            fig0_3 = FIG0_3(self.ensemble)
+            self.carousel.add_fig(fig0_3)
 
         # FIG 1/0: Ensemble label (mandatory if label exists)
         if self.ensemble.label.text:

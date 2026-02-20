@@ -255,6 +255,7 @@ class DabSubchannel:
     protection: DabProtection = field(default_factory=DabProtection)
     input_uri: str = ""
     pad: Optional[PADConfig] = None  # PAD configuration for this subchannel
+    fec_scheme: int = 0  # FEC scheme code (0=none, 1=RS(204,188), 2-3=reserved)
 
     def get_size_cu(self) -> int:
         """
@@ -389,11 +390,13 @@ class DabDataComponent:
 
 @dataclass
 class DabPacketComponent:
-    """Packet component data."""
+    """Packet component data (for FIG 0/3)."""
     id: int = 0
-    address: int = 0
+    address: int = 0  # Packet address (10 bits, 0-1023)
     ua_types: List[UserApplication] = field(default_factory=list)
-    datagroup: bool = False
+    datagroup: bool = False  # Data group flag
+    dscty: int = 0  # Data Service Component Type (6 bits)
+    ca_org: int = 0  # Conditional Access Organization
 
 
 @dataclass
@@ -410,6 +413,7 @@ class DabComponent:
     subchannel_id: int = 0  # Associated subchannel ID
     type: int = 0  # Component type (audio/data)
     scids: int = 0  # Service Component ID within Service
+    is_packet_mode: bool = False  # True if TMid=01 (packet mode)
 
     # Type-specific data
     audio: DabAudioComponent = field(default_factory=DabAudioComponent)

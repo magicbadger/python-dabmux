@@ -8,23 +8,25 @@ This document tracks missing functionality compared to ODR-DabMux and the ETSI D
 - ✅ FIG 0/0: Ensemble information
 - ✅ FIG 0/1: Subchannel organization
 - ✅ FIG 0/2: Service component description
+- ✅ FIG 0/3: Service component in packet mode (Priority 3) ⭐ NEW
 - ✅ FIG 0/5: Service component language
-- ✅ FIG 0/6: Service linking (Priority 2) ⭐ NEW
+- ✅ FIG 0/6: Service linking (Priority 2)
 - ✅ FIG 0/8: Service component global definition
-- ✅ FIG 0/9: Extended Country Code & LTO (Priority 1) ⭐ NEW
-- ✅ FIG 0/10: Date and Time (Priority 1) ⭐ NEW
+- ✅ FIG 0/9: Extended Country Code & LTO (Priority 1)
+- ✅ FIG 0/10: Date and Time (Priority 1)
 - ✅ FIG 0/13: User application information
+- ✅ FIG 0/14: FEC sub-channel organization (Priority 3) ⭐ NEW
 - ✅ FIG 0/17: Programme Type
-- ✅ FIG 0/18: Announcement Support (Priority 1) ⭐ NEW
-- ✅ FIG 0/19: Announcement Switching (Priority 1) ⭐ NEW
-- ✅ FIG 0/21: Frequency Information (Priority 2) ⭐ NEW
-- ✅ FIG 0/24: Other Ensemble Services (Priority 2) ⭐ NEW
+- ✅ FIG 0/18: Announcement Support (Priority 1)
+- ✅ FIG 0/19: Announcement Switching (Priority 1)
+- ✅ FIG 0/21: Frequency Information (Priority 2)
+- ✅ FIG 0/24: Other Ensemble Services (Priority 2)
 - ✅ FIG 1/0: Ensemble label
 - ✅ FIG 1/1: Service labels
 - ✅ FIG 1/4: Service component labels
 
 **Test Coverage:**
-- 616 passing tests (41 new tests for Priority 1 & 2)
+- 647 passing tests (72 new tests for Priority 1, 2 & 3)
 - Comprehensive unit tests for all FIG types
 - Integration tested with dablin and etisnoop
 
@@ -146,28 +148,36 @@ Enables multi-ensemble networks and service discovery.
 
 ---
 
-## Priority 3: Data Services & Packet Mode
+## Priority 3: Data Services & Packet Mode ✅ COMPLETED
 
-Required for non-audio data services.
+Enables non-audio data services with packet addressing and FEC protection.
 
-### FIG 0/3 - Service Component in Packet Mode
-- [ ] Implement FIG 0/3 encoding
-- [ ] Add packet mode subchannel support
-- [ ] Support CAOrg (Conditional Access Organization)
-- [ ] Add packet address configuration
-- [ ] Support DG flag (Data Groups)
-- [ ] Write unit tests for FIG 0/3
-- [ ] Create packet mode examples
+### FIG 0/3 - Service Component in Packet Mode ✅
+- ✅ Implement FIG 0/3 encoding
+- ✅ Add packet mode subchannel support
+- ✅ Support CAOrg (Conditional Access Organization)
+- ✅ Add packet address configuration (10-bit, 0-1023)
+- ✅ Support DG flag (Data Groups)
+- ✅ Support DSCTy (Data Service Component Type)
+- ✅ TMid=01 (packet mode) vs TMid=00 (stream mode)
+- ✅ 3 bytes per component (vs 2 bytes for stream)
+- ✅ Programme/data service alternation
+- ✅ Iterative transmission support
+- ✅ Write unit tests for FIG 0/3 (18 tests)
+- ✅ Create packet mode examples (MOT, EPG, Journaline)
 
-**Specification:** ETSI EN 300 401 Section 6.3.1
+**Specification:** ETSI EN 300 401 Section 8.1.4
 
-### FIG 0/14 - FEC Sub-channel Organization
-- [ ] Implement FIG 0/14 encoding
-- [ ] Add FEC scheme configuration
-- [ ] Support sub-channel organization for packet mode
-- [ ] Write unit tests for FIG 0/14
+### FIG 0/14 - FEC Sub-channel Organization ✅
+- ✅ Implement FIG 0/14 encoding
+- ✅ Add FEC scheme configuration (0-3)
+- ✅ Support RS(204, 188) Reed-Solomon FEC (scheme 1)
+- ✅ Conditional registration (only when FEC enabled)
+- ✅ Iterative transmission for multiple FEC subchannels
+- ✅ Write unit tests for FIG 0/14 (13 tests)
+- ✅ Integrate with packet mode subchannels
 
-**Specification:** ETSI EN 300 401 Section 6.2.1
+**Specification:** ETSI EN 300 401 Section 8.1.5
 
 ---
 
@@ -339,27 +349,32 @@ Required for non-audio data services.
 - ✅ Tested with up to 32 simultaneous services @ 89% capacity
 - ✅ 100% decode success rate with ODR-encoded audio
 - ✅ Full ETI output support
-- ✅ **Emergency alerting system ready** (FIG 0/9, 0/10, 0/18, 0/19) ⭐ NEW
-- ✅ **Multi-ensemble networks** (FIG 0/6, 0/21, 0/24) ⭐ NEW
-- ✅ **Service linking and frequency management** ⭐ NEW
-- ✅ **Date/time synchronization with LTO** ⭐ NEW
-- ✅ **616 passing tests** with comprehensive coverage ⭐ NEW
+- ✅ **Emergency alerting system ready** (FIG 0/9, 0/10, 0/18, 0/19)
+- ✅ **Multi-ensemble networks** (FIG 0/6, 0/21, 0/24)
+- ✅ **Service linking and frequency management**
+- ✅ **Date/time synchronization with LTO**
+- ✅ **Data services with packet mode** (FIG 0/3, 0/14) ⭐ NEW
+- ✅ **FEC protection for packet data** (RS 204,188) ⭐ NEW
+- ✅ **Packet addressing for component multiplexing** ⭐ NEW
+- ✅ **MOT, EPG, Journaline support** ⭐ NEW
+- ✅ **647 passing tests** with comprehensive coverage ⭐ NEW
 
 **Remaining Limitations for Production Use:**
 - ⚠️ No EDI output for modern broadcast chains (Priority 5)
 - ⚠️ No runtime control (missing ZMQ/management) (Priority 6)
-- ⚠️ Limited to audio services (no packet mode data services) (Priority 3)
 - ⚠️ No advanced signalling (FIG 0/7, FIG 2/x) (Priority 4)
 
-**✅ Minimum Viable for Emergency Alerts: ACHIEVED**
-1. ✅ FIG 0/18 (announcement support)
-2. ✅ FIG 0/19 (announcement switching)
-3. ✅ FIG 0/10 (date/time)
-4. ✅ FIG 0/9 (ECC/LTO)
+**✅ Core FIG Signaling: COMPLETE**
+All fundamental DAB multiplex configuration information (MCI) implemented:
+1. ✅ FIG 0/18, 0/19 (announcement support & switching)
+2. ✅ FIG 0/10 (date/time)
+3. ✅ FIG 0/9 (ECC/LTO)
+4. ✅ FIG 0/6, 0/21, 0/24 (service linking & navigation)
+5. ✅ FIG 0/3, 0/14 (packet mode data services & FEC) ⭐ NEW
 
 **Professional Deployment Readiness:**
 - ✅ Emergency alerting: **READY** (Priority 1 complete)
 - ✅ Multi-ensemble networks: **READY** (Priority 2 complete)
+- ✅ Data services (packet mode): **READY** (Priority 3 complete) ⭐ NEW
 - ⚠️ Modern broadcast chains: Needs EDI output (Priority 5)
 - ⚠️ Remote management: Needs ZMQ control (Priority 6)
-- ⚠️ Data services: Needs packet mode (Priority 3)

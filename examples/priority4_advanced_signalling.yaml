@@ -1,0 +1,115 @@
+# Priority 4: Advanced Signalling Example Configuration
+#
+# Demonstrates:
+# - FIG 0/7: Configuration Information (automatic hash-based counter)
+# - FIG 2/1: Service Component Dynamic Label (UTF-8 "now playing" text)
+#
+# This configuration creates a DAB+ ensemble with advanced signalling features
+# for modern DAB receivers.
+
+ensemble:
+  id: 0xCE15
+  ecc: 0xE1
+  label:
+    text: 'Advanced Signalling Demo'
+    short_text: 'AdvDemo'
+  transmission_mode: 'I'
+
+  # Date/time signalling (FIG 0/10)
+  datetime:
+    enabled: true
+
+subchannels:
+  # Main audio channel (48 kbps DAB+)
+  - uid: 'audio_main'
+    id: 0
+    type: 'dabplus'
+    bitrate: 48
+    protection: 'EEP_3A'
+    input_uri: 'file://audio/main.dabp'
+
+  # Secondary audio channel (32 kbps DAB+)
+  - uid: 'audio_secondary'
+    id: 1
+    type: 'dabplus'
+    bitrate: 32
+    protection: 'EEP_2A'
+    input_uri: 'file://audio/secondary.dabp'
+
+services:
+  # Main radio service
+  - uid: 'radio_main'
+    id: 0x5001
+    label:
+      text: 'Example Radio'
+      short_text: 'Radio'
+    pty: 10  # Pop Music
+    language: 9  # English
+
+  # Secondary service
+  - uid: 'radio_secondary'
+    id: 0x5002
+    label:
+      text: 'Alternative Channel'
+      short_text: 'AltChan'
+    pty: 1  # News
+    language: 9  # English
+
+components:
+  # Main programme component with dynamic label
+  - uid: 'audio_component_main'
+    service_id: '0x5001'
+    subchannel_id: 0
+    label:
+      text: 'Main Programme'
+      short_text: 'Main'
+    # FIG 2/1: Dynamic Label with UTF-8 support
+    dynamic_label:
+      text: 'Now Playing: Artist - Song Title 🎵'
+      charset: 2  # 0=EBU Latin, 1=UCS-2, 2=UTF-8
+
+  # Secondary programme component with dynamic label
+  - uid: 'audio_component_secondary'
+    service_id: '0x5002'
+    subchannel_id: 1
+    label:
+      text: 'News & Talk'
+      short_text: 'News'
+    # FIG 2/1: Another dynamic label example
+    dynamic_label:
+      text: 'Live: Breaking News Coverage'
+      charset: 2  # UTF-8
+
+# Technical Notes:
+#
+# FIG 0/7 (Configuration Information):
+# - Automatically enabled - indicates ETSI EN 300 401 v2 compliance
+# - Configuration counter calculated from ensemble structure hash
+# - Counter changes when services/subchannels/components are added/removed
+# - Transmitted at Rate B (once per second)
+# - Helps receivers detect configuration changes efficiently
+#
+# FIG 2/1 (Service Component Dynamic Label):
+# - Provides "now playing" text for each component
+# - Supports UTF-8, UCS-2, and EBU Latin character sets
+# - Text can be up to 128 bytes long
+# - Segmented transmission (max 8 segments of 16 bytes each)
+# - Toggle flag indicates when text changes
+# - Transmitted at Rate A (100ms) for responsive updates
+#
+# Dynamic Label Updates:
+# To update dynamic labels at runtime (future feature):
+#   component.dynamic_label.update_text("New Text")
+# This will:
+#   - Toggle the toggle flag
+#   - Re-segment the text
+#   - Trigger retransmission
+#
+# Character Set Selection:
+# - charset: 0 = EBU Latin (compatible with all DAB receivers)
+# - charset: 1 = UCS-2 (UTF-16 Big Endian, for international characters)
+# - charset: 2 = UTF-8 (recommended for modern receivers, emoji support)
+#
+# Standards Compliance:
+# - ETSI EN 300 401 Section 8.1.16 (FIG 0/7)
+# - ETSI EN 300 401 Section 8.1.13.2 (FIG 2/1)

@@ -152,6 +152,121 @@ class DabLabel:
 
 
 @dataclass
+class DynamicLabel:
+    """
+    Dynamic label for FIG 2 transmission.
+
+    Differs from static DabLabel:
+    - Variable length (0-128 chars vs fixed 16)
+    - Toggle mechanism for change detection
+    - Segmented transmission
+    - Multiple charset support (EBU Latin, UTF-8, UCS-2)
+
+    Used for "now playing" text on DAB receivers.
+    """
+    text: str = ""
+    charset: int = 2  # 0=EBU Latin, 1=UCS-2, 2=UTF-8
+    toggle: bool = False
+    _segments: List[bytes] = field(default_factory=list, repr=False)
+    _segment_index: int = field(default=0, repr=False)
+
+    def __post_init__(self):
+        """Initialize segments after creation."""
+        if self.text:
+            # Encode and segment initial text
+            encoded = self._encode_text()
+            self._segments = self._create_segments(encoded)
+
+    def update_text(self, new_text: str) -> bool:
+        """
+        Update text and regenerate segments.
+
+        Args:
+            new_text: New text to display
+
+        Returns:
+            True if text changed, False otherwise
+        """
+        if new_text == self.text:
+            return False
+
+        self.toggle = not self.toggle
+        self.text = new_text
+
+        # Encode and segment
+        encoded = self._encode_text()
+        self._segments = self._create_segments(encoded)
+        self._segment_index = 0
+
+        return True
+
+    def _encode_text(self) -> bytes:
+        """
+        Encode text per charset.
+
+        Returns:
+            Encoded text bytes (max 128 bytes)
+        """
+        if self.charset == 0:  # EBU Latin
+            from dabmux.utils.charset import utf8_to_ebu_latin
+            return utf8_to_ebu_latin(self.text, max_length=128, pad=False)
+        elif self.charset == 1:  # UCS-2 (UTF-16 BE)
+            return self.text.encode('utf-16-be')[:128]
+        elif self.charset == 2:  # UTF-8
+            return self.text.encode('utf-8')[:128]
+        else:
+            raise ValueError(f"Unsupported charset: {self.charset}")
+
+    def _create_segments(self, data: bytes) -> List[bytes]:
+        """
+        Split data into 16-byte segments.
+
+        Args:
+            data: Encoded text data
+
+        Returns:
+            List of segments (max 8 segments for 128 bytes)
+        """
+        if len(data) == 0:
+            return []  # Empty segments list for empty text
+
+        segments = []
+        for i in range(0, len(data), 16):
+            segments.append(data[i:i+16])
+
+        return segments  # Max 8 segments (128/16)
+
+    def get_next_segment(self) -> Optional[bytes]:
+        """
+        Get next segment for transmission (circular).
+
+        Returns:
+            Next segment bytes, or None if no segments
+        """
+        if not self._segments:
+            return None
+
+        segment = self._segments[self._segment_index]
+        self._segment_index = (self._segment_index + 1) % len(self._segments)
+        return segment
+
+    def get_current_segment_number(self) -> int:
+        """Get current segment number (0-7)."""
+        if not self._segments:
+            return 0
+        # Return the index that will be transmitted next time
+        # (we already advanced it in get_next_segment)
+        return (self._segment_index - 1) % len(self._segments)
+
+    def is_last_segment(self) -> bool:
+        """Check if current segment is the last one."""
+        if not self._segments:
+            return True
+        current = (self._segment_index - 1) % len(self._segments)
+        return current == len(self._segments) - 1
+
+
+@dataclass
 class DabProtectionUEP:
     """Unequal Error Protection parameters."""
     table_index: int = 0
@@ -420,6 +535,9 @@ class DabComponent:
     data: DabDataComponent = field(default_factory=DabDataComponent)
     packet: DabPacketComponent = field(default_factory=DabPacketComponent)
 
+    # Dynamic label (Priority 4 - FIG 2/1)
+    dynamic_label: Optional[DynamicLabel] = None
+
     def validate(self) -> bool:
         """Validate component configuration."""
         return self.label.validate()
@@ -520,6 +638,9 @@ class DabEnsemble:
     international_table: int = 1  # PTy table (1=RDS, 2=North America)
     alarm_flag: bool = False
 
+    # Configuration Information (Priority 4 - FIG 0/7)
+    configuration_count: int = 0  # FIG 0/7 configuration counter (0-1023)
+
     # Date/time and announcements
     datetime: DateTimeConfig = field(default_factory=DateTimeConfig)
     active_announcements: List[ActiveAnnouncement] = field(default_factory=list)
@@ -581,3 +702,28 @@ class DabEnsemble:
         for subchannel in self.subchannels:
             total += subchannel.get_size_cu()
         return total
+
+    def calculate_configuration_hash(self) -> int:
+        """
+        Calculate hash of ensemble configuration for FIG 0/7.
+
+        Hash includes structural elements that affect receiver parsing:
+        - Ensemble ID, ECC
+        - Subchannel configurations (ID, type, bitrate, protection, FEC)
+        - Service IDs
+        - Component mappings
+
+        Returns:
+            10-bit hash value (0-1023)
+        """
+        config_tuple = (
+            self.id,
+            self.ecc,
+            tuple((s.id, s.type.value, s.bitrate, s.protection.level,
+                   s.protection.form.value, s.fec_scheme)
+                  for s in self.subchannels),
+            tuple((svc.id,) for svc in self.services),
+            tuple((c.service_id, c.subchannel_id, c.is_packet_mode)
+                  for c in self.components)
+        )
+        return abs(hash(config_tuple)) % 1024

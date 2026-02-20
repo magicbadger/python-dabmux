@@ -2225,3 +2225,104 @@ class FIG0_6(FIGBase):
     def fig_extension(self) -> int:
         """Extension 6."""
         return 6
+
+
+class FIG0_7(FIGBase):
+    """
+    FIG 0/7: Configuration Information.
+
+    Signals ensemble configuration changes to receivers using a counter.
+    Indicates compliance with ETSI EN 300 401 v2.
+
+    Per ETSI EN 300 401 Section 8.1.16.
+
+    Byte Structure:
+    - Header (2 bytes): FIG Type/Length + CN/OE/PD/Extension
+    - Count High (1 byte): Rfa (6 bits) + Count high (2 bits)
+    - Count Low (1 byte): Count low (8 bits)
+
+    Total: 4 bytes (2 header + 2 data)
+    """
+
+    def __init__(self, ensemble: DabEnsemble) -> None:
+        """
+        Initialize FIG 0/7.
+
+        Args:
+            ensemble: Ensemble configuration
+        """
+        super().__init__()
+        self.ensemble = ensemble
+        self._last_transmitted_count = -1
+
+    def fill(self, buf: bytearray, max_size: int) -> FillStatus:
+        """
+        Fill buffer with FIG 0/7 data.
+
+        Args:
+            buf: Buffer to write into
+            max_size: Maximum bytes available
+
+        Returns:
+            Fill status
+        """
+        status = FillStatus()
+
+        if max_size < 4:
+            return status
+
+        # Calculate current configuration hash
+        current_count = self.ensemble.calculate_configuration_hash()
+        self.ensemble.configuration_count = current_count
+
+        # Skip if count hasn't changed (no retransmission needed)
+        if current_count == self._last_transmitted_count:
+            status.complete_fig_transmitted = True
+            return status
+
+        # Encode FIG 0/7 (4 bytes total)
+        # Header byte 0: Type (3 bits) = 0 | Length (5 bits) = 3
+        fig_type = 0
+        length = 3  # 1 byte for header byte 1 + 2 bytes data
+        buf[0] = (fig_type << 5) | (length & 0x1F)
+
+        # Header byte 1: CN (1) = 0 | OE (1) = 0 | PD (1) = 0 | Extension (5) = 7
+        cn = 0  # Current/Next: 0 = current
+        oe = 0  # Other Ensemble: 0 = this ensemble
+        pd = 0  # Programme/Data: 0 = programme services
+        extension = 7
+        buf[1] = (cn << 7) | (oe << 6) | (pd << 5) | (extension & 0x1F)
+
+        # Data byte 0: Rfa (6 bits) = 0 | Count high (2 bits)
+        buf[2] = (current_count >> 8) & 0x03
+
+        # Data byte 1: Count low (8 bits)
+        buf[3] = current_count & 0xFF
+
+        logger.debug(
+            "Encoding FIG 0/7",
+            configuration_count=current_count,
+            changed=(current_count != self._last_transmitted_count)
+        )
+
+        self._last_transmitted_count = current_count
+        status.num_bytes_written = 4
+        status.complete_fig_transmitted = True
+
+        return status
+
+    def repetition_rate(self) -> FIGRate:
+        """FIG 0/7 transmitted at rate B (once per second)."""
+        return FIGRate.B
+
+    def priority(self) -> FIGPriority:
+        """FIG 0/7 is NORMAL priority."""
+        return FIGPriority.NORMAL
+
+    def fig_type(self) -> int:
+        """FIG type 0."""
+        return 0
+
+    def fig_extension(self) -> int:
+        """Extension 7."""
+        return 7

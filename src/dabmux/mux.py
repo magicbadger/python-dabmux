@@ -8,7 +8,7 @@ from typing import List, Dict, Optional
 import structlog
 
 from dabmux.core.eti import EtiFrame
-from dabmux.core.mux_elements import DabEnsemble, DabSubchannel
+from dabmux.core.mux_elements import DabEnsemble, DabSubchannel, ActiveAnnouncement
 from dabmux.input.base import InputBase
 from dabmux.input.dabplus_input import DABPlusInput
 from dabmux.output.base import DabOutput
@@ -436,6 +436,95 @@ class DabMultiplexer:
     def stop(self) -> None:
         """Stop the multiplexer."""
         self._running = False
+
+    def start_announcement(
+        self,
+        cluster_id: int,
+        types: List[str],
+        subchannel_id: int,
+        region_id: int = 0,
+        new_flag: bool = True
+    ) -> None:
+        """
+        Start an announcement.
+
+        Adds an active announcement to the ensemble, which will be signalled
+        via FIG 0/19. Receivers will switch to the announcement subchannel.
+
+        Args:
+            cluster_id: Cluster ID (announcement group)
+            types: List of announcement types (e.g., ['alarm', 'news'])
+            subchannel_id: Subchannel ID carrying the announcement
+            region_id: Optional region ID (default: 0)
+            new_flag: New announcement flag (default: True)
+
+        Raises:
+            ValueError: If announcement types are invalid
+        """
+        # Validate announcement types
+        from dabmux.fig.fig0 import ANNOUNCEMENT_TYPES
+        for ann_type in types:
+            if ann_type.lower() not in ANNOUNCEMENT_TYPES:
+                raise ValueError(f"Invalid announcement type: {ann_type}")
+
+        # Check if announcement already exists for this cluster
+        for existing in self.ensemble.active_announcements:
+            if existing.cluster_id == cluster_id:
+                logger.warning(
+                    "Announcement already active for cluster, updating",
+                    cluster_id=cluster_id
+                )
+                existing.types = types
+                existing.subchannel_id = subchannel_id
+                existing.region_id = region_id
+                existing.new_flag = new_flag
+                return
+
+        # Create new active announcement
+        announcement = ActiveAnnouncement(
+            cluster_id=cluster_id,
+            types=types,
+            subchannel_id=subchannel_id,
+            new_flag=new_flag,
+            region_flag=region_id != 0,
+            region_id=region_id
+        )
+
+        self.ensemble.active_announcements.append(announcement)
+
+        logger.info(
+            "Started announcement",
+            cluster_id=cluster_id,
+            types=types,
+            subchannel_id=subchannel_id
+        )
+
+    def stop_announcement(self, cluster_id: int) -> bool:
+        """
+        Stop an announcement.
+
+        Removes the active announcement from the ensemble. FIG 0/19 will
+        no longer signal this announcement.
+
+        Args:
+            cluster_id: Cluster ID of announcement to stop
+
+        Returns:
+            True if announcement was stopped, False if not found
+        """
+        initial_count = len(self.ensemble.active_announcements)
+
+        self.ensemble.active_announcements = [
+            a for a in self.ensemble.active_announcements
+            if a.cluster_id != cluster_id
+        ]
+
+        if len(self.ensemble.active_announcements) < initial_count:
+            logger.info("Stopped announcement", cluster_id=cluster_id)
+            return True
+        else:
+            logger.warning("Announcement not found", cluster_id=cluster_id)
+            return False
 
     def cleanup(self) -> None:
         """Clean up resources (close inputs and outputs)."""

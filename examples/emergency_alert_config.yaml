@@ -1,0 +1,141 @@
+# Emergency Alert System Example Configuration
+#
+# This configuration demonstrates Priority 1 features:
+# - FIG 0/10: Date and Time
+# - FIG 0/9: Extended Country Code and LTO
+# - FIG 0/18: Announcement Support
+# - FIG 0/19: Announcement Switching (controlled via API)
+#
+# Use with: python -m dabmux.cli -c examples/emergency_alert_config.yaml -o output.eti -f raw
+
+ensemble:
+  # Ensemble identification
+  id: '0xCE15'
+  label: 'Emergency DAB'
+  ecc: '0xE1'  # UK Extended Country Code
+  international_table: 1  # 1=RDS (Europe), 2=RBDS (North America)
+
+  # Date and Time (FIG 0/10)
+  datetime:
+    enabled: true
+    source: 'system'  # 'system' or 'manual'
+    include_lto: true
+    lto_auto: true
+    utc_flag: true
+    confidence: true
+
+  # Local Time Offset (used by FIG 0/9 and 0/10)
+  # lto: 0  # Manual LTO in half-hours (ignored if lto_auto=true)
+  # lto_auto: true  # Auto-calculate from system timezone
+
+subchannels:
+  # Music subchannel
+  - uid: 'music_sub'
+    bitrate: 48
+    protection: EEP_3A
+    type: 'dabplus'
+    input_uri: 'file://audio/music.dabp'
+
+  # Emergency announcement subchannel
+  - uid: 'emergency_sub'
+    bitrate: 32
+    protection: EEP_1A  # High protection for emergency
+    type: 'dabplus'
+    input_uri: 'file://audio/emergency.dabp'
+
+  # News subchannel
+  - uid: 'news_sub'
+    bitrate: 32
+    protection: EEP_2A
+    type: 'dabplus'
+    input_uri: 'file://audio/news.dabp'
+
+services:
+  # Music service with announcement support
+  - uid: 'music_service'
+    id: '0x5001'
+    label: 'Music Radio'
+    pty: 10  # Pop music
+    language: 9  # English (0x09)
+
+    subchannel: 'music_sub'
+
+    # Announcement support (FIG 0/18)
+    announcements:
+      enabled: true
+      types: ['alarm', 'news', 'traffic']
+      clusters: [1]  # Announcement cluster/group ID
+      new_flag: true
+
+  # Emergency announcement service
+  - uid: 'emergency_service'
+    id: '0x5002'
+    label: 'Emergency'
+    pty: 16  # Alarm
+    language: 9
+
+    subchannel: 'emergency_sub'
+
+    announcements:
+      enabled: true
+      types: ['alarm', 'warning']
+      clusters: [1]  # Same cluster as music service
+      new_flag: true
+
+  # News service
+  - uid: 'news_service'
+    id: '0x5003'
+    label: 'News'
+    pty: 1  # News
+    language: 9
+
+    subchannel: 'news_sub'
+
+    announcements:
+      enabled: true
+      types: ['news']
+      clusters: [2]  # Different cluster
+      new_flag: true
+
+# Usage Notes:
+#
+# 1. Start the multiplexer:
+#    python -m dabmux.cli -c examples/emergency_alert_config.yaml -o output.eti -f raw -n 1000
+#
+# 2. To trigger an announcement at runtime, use the Python API:
+#
+#    from dabmux.mux import DabMultiplexer
+#    from dabmux.config.parser import ConfigParser
+#
+#    ensemble = ConfigParser.parse_file('examples/emergency_alert_config.yaml')
+#    mux = DabMultiplexer(ensemble)
+#
+#    # Start an alarm announcement on cluster 1, directing to subchannel 1
+#    mux.start_announcement(
+#        cluster_id=1,
+#        types=['alarm', 'warning'],
+#        subchannel_id=1  # Emergency subchannel
+#    )
+#
+#    # Generate frames - FIG 0/19 now signals the active announcement
+#    for _ in range(100):
+#        eti_frame = mux.generate_frame()
+#        # ... output frame ...
+#
+#    # Stop the announcement
+#    mux.stop_announcement(cluster_id=1)
+#
+# 3. Verify with etisnoop or dablin:
+#    ~/git/etisnoop/etisnoop -i output.eti
+#    ~/git/dablin/dablin -s 0x5001 output.eti
+#
+# Expected FIGs in output:
+# - FIG 0/0: Ensemble information
+# - FIG 0/1: Subchannel organization
+# - FIG 0/2: Service organization
+# - FIG 0/9: Extended Country Code & LTO
+# - FIG 0/10: Date and Time
+# - FIG 0/18: Announcement support (all 3 services)
+# - FIG 0/19: Announcement switching (only when active)
+# - FIG 1/0: Ensemble label
+# - FIG 1/1: Service labels

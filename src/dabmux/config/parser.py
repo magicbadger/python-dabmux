@@ -16,6 +16,8 @@ from dabmux.core.mux_elements import (
     PADConfig,
     DLSConfig,
     PtySettings,
+    DateTimeConfig,
+    AnnouncementConfig,
     SubchannelType,
     TransmissionMode
 )
@@ -100,6 +102,16 @@ class ConfigParser:
             # Use standard label parsing
             label = ConfigParser._parse_label(label_config)
 
+        # Parse datetime configuration
+        datetime_config = DateTimeConfig()
+        if 'datetime' in ensemble_config:
+            dt_dict = ensemble_config['datetime']
+            datetime_config.enabled = dt_dict.get('enabled', False)
+            datetime_config.source = dt_dict.get('source', 'system')
+            datetime_config.include_lto = dt_dict.get('include_lto', True)
+            datetime_config.utc_flag = dt_dict.get('utc_flag', True)
+            datetime_config.confidence = dt_dict.get('confidence', True)
+
         # Create ensemble
         ensemble = DabEnsemble(
             id=ens_id,
@@ -107,7 +119,9 @@ class ConfigParser:
             label=label,
             transmission_mode=transmission_mode,
             lto_auto=ensemble_config.get('lto_auto', True),
-            lto=ensemble_config.get('lto', 0)
+            lto=ensemble_config.get('lto', 0),
+            international_table=ensemble_config.get('international_table', 1),
+            datetime=datetime_config
         )
 
         # Parse subchannels
@@ -363,12 +377,30 @@ class ConfigParser:
             # Use standard label parsing
             label = ConfigParser._parse_label(label_config)
 
+        # Parse announcement configuration
+        ann_config = AnnouncementConfig()
+        if 'announcements' in svc_config:
+            ann_dict = svc_config['announcements']
+            ann_config.enabled = ann_dict.get('enabled', False)
+            ann_config.types = ann_dict.get('types', [])
+            ann_config.new_flag = ann_dict.get('new_flag', False)
+            ann_config.region_flag = ann_dict.get('region_flag', False)
+
+        # Parse clusters (can be in announcements or at service level)
+        clusters = svc_config.get('clusters', [])
+        if 'announcements' in svc_config:
+            clusters = svc_config['announcements'].get('clusters', clusters)
+
         return DabService(
             uid=svc_config.get('uid', f"service_{svc_id}"),
             id=svc_id,
+            ecc=svc_config.get('ecc', 0),
             label=label,
             pty_settings=pty_settings,
-            language=svc_config.get('language', 0)
+            language=svc_config.get('language', 0),
+            asu=svc_config.get('asu', 0),
+            clusters=clusters,
+            announcements=ann_config
         )
 
     @staticmethod

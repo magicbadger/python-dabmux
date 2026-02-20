@@ -8,7 +8,7 @@ of 30 bytes each, plus padding.
 import structlog
 from dabmux.fig.carousel import FIGCarousel
 from dabmux.core.mux_elements import DabEnsemble, TransmissionMode
-from dabmux.fig.fig0 import FIG0_0, FIG0_1, FIG0_2
+from dabmux.fig.fig0 import FIG0_0, FIG0_1, FIG0_2, FIG0_9, FIG0_10, FIG0_18, FIG0_19
 from dabmux.fig.fig1 import FIG1_0, FIG1_1
 from dabmux.utils.crc import crc16
 
@@ -64,6 +64,25 @@ class FICEncoder:
         if any(s.label.text for s in self.ensemble.services):
             fig1_1 = FIG1_1(self.ensemble)
             self.carousel.add_fig(fig1_1)
+
+        # FIG 0/9: Extended Country Code (if ECC is set and services exist)
+        if self.ensemble.services and self.ensemble.ecc != 0:
+            fig0_9 = FIG0_9(self.ensemble)
+            self.carousel.add_fig(fig0_9)
+
+        # FIG 0/10: Date and Time (if enabled)
+        if self.ensemble.datetime.enabled:
+            fig0_10 = FIG0_10(self.ensemble)
+            self.carousel.add_fig(fig0_10)
+
+        # FIG 0/18: Announcement Support (if any service has announcements)
+        if any(s.announcements.enabled for s in self.ensemble.services):
+            fig0_18 = FIG0_18(self.ensemble)
+            self.carousel.add_fig(fig0_18)
+
+        # FIG 0/19: Announcement Switching (always register, skips if no active)
+        fig0_19 = FIG0_19(self.ensemble)
+        self.carousel.add_fig(fig0_19)
 
         logger.info(
             "FIC encoder initialized",

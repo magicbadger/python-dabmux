@@ -5,6 +5,7 @@ This module defines all data structures used to represent ensemble data,
 including services, components, subchannels, and the ensemble itself.
 """
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum, IntEnum
 from typing import List, Optional
 
@@ -374,6 +375,49 @@ class PtySettings:
 
 
 @dataclass
+class DateTimeConfig:
+    """
+    Date and Time configuration for FIG 0/10.
+
+    Provides time information to receivers for display and logging.
+    """
+    enabled: bool = False
+    source: str = 'system'  # 'system' or 'manual'
+    include_lto: bool = True  # Include Local Time Offset
+    utc_flag: bool = True  # UTC flag (True = UTC, False = local time)
+    confidence: bool = True  # Confidence indicator
+    manual_datetime: Optional['datetime'] = None  # For manual source
+
+
+@dataclass
+class AnnouncementConfig:
+    """
+    Announcement configuration for a service (FIG 0/18).
+
+    Declares which announcement types a service supports.
+    """
+    enabled: bool = False
+    types: List[str] = field(default_factory=list)  # e.g., ['alarm', 'news']
+    new_flag: bool = False
+    region_flag: bool = False
+
+
+@dataclass
+class ActiveAnnouncement:
+    """
+    Active announcement for FIG 0/19.
+
+    Represents a currently broadcasting announcement.
+    """
+    cluster_id: int
+    types: List[str]
+    subchannel_id: int
+    new_flag: bool = True
+    region_flag: bool = False
+    region_id: int = 0
+
+
+@dataclass
 class DabService:
     """
     DAB service.
@@ -389,6 +433,7 @@ class DabService:
     language: int = 0  # Language code
     asu: int = 0  # Announcement support flags (16-bit)
     clusters: List[int] = field(default_factory=list)
+    announcements: AnnouncementConfig = field(default_factory=AnnouncementConfig)
 
     def validate(self) -> bool:
         """Validate service configuration."""
@@ -414,6 +459,10 @@ class DabEnsemble:
 
     international_table: int = 1  # PTy table (1=RDS, 2=North America)
     alarm_flag: bool = False
+
+    # Date/time and announcements
+    datetime: DateTimeConfig = field(default_factory=DateTimeConfig)
+    active_announcements: List[ActiveAnnouncement] = field(default_factory=list)
 
     # Collections
     services: List[DabService] = field(default_factory=list)

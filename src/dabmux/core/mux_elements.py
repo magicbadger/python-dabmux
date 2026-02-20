@@ -167,6 +167,40 @@ class DabProtectionEEP:
 
 
 @dataclass
+class DLSConfig:
+    """
+    DLS (Dynamic Label Segment) configuration.
+
+    DLS provides text information (song titles, station info, etc.)
+    displayed on DAB receivers.
+    """
+    enabled: bool = False
+    input_type: str = 'file'  # 'file', 'fifo', or 'zeromq'
+    input_path: str = ''
+    charset: str = 'utf8'  # 'utf8' or 'ebu-latin'
+    default_label: str = ''
+    poll_interval: float = 1.0  # For file/fifo monitoring (seconds)
+
+
+@dataclass
+class PADConfig:
+    """
+    PAD (Programme Associated Data) configuration.
+
+    PAD carries supplementary data alongside audio, including DLS text,
+    MOT Slideshow images, and other data services.
+    """
+    enabled: bool = False
+    length: int = 58  # Total PAD length in bytes (F-PAD + X-PAD)
+    dls: Optional[DLSConfig] = None
+
+    def __post_init__(self):
+        """Initialize DLS config if None."""
+        if self.dls is None and self.enabled:
+            self.dls = DLSConfig()
+
+
+@dataclass
 class DabProtection:
     """
     Protection scheme configuration.
@@ -219,20 +253,46 @@ class DabSubchannel:
     bitrate: int = 0  # Bitrate in kbps
     protection: DabProtection = field(default_factory=DabProtection)
     input_uri: str = ""
+    pad: Optional[PADConfig] = None  # PAD configuration for this subchannel
 
     def get_size_cu(self) -> int:
         """
         Calculate subchannel size in Capacity Units (CU).
 
-        Uses the UEP table index to look up the size in SUB_CHANNEL_SIZE_TABLE_CU.
+        Uses standard DAB formulas based on bitrate and protection level.
+        The subchannel size is independent of FEC encoding - it represents
+        the MST capacity allocation, not the RS-encoded data size.
+
+        Formula from ETSI EN 300 401 and ODR-DabMux implementation.
         """
         if self.protection.form == ProtectionForm.UEP:
-            # Get UEP table index
+            # UEP: Use table lookup
             key = (self.bitrate, self.protection.level)
             table_idx = UEP_TABLE_INDEX.get(key, 0)
-            # Look up size in CU
             if 0 <= table_idx < len(SUB_CHANNEL_SIZE_TABLE_CU):
                 return SUB_CHANNEL_SIZE_TABLE_CU[table_idx]
+        elif self.protection.form == ProtectionForm.EEP and self.protection.eep:
+            # EEP: Calculate from bitrate and protection level
+            if self.protection.eep.profile == EEPProfile.EEP_A:
+                # EEP-A formulas (right shift = divide by 2^n)
+                if self.protection.level == 0:  # EEP 1-A
+                    return (self.bitrate * 12) >> 3  # bitrate * 1.5
+                elif self.protection.level == 1:  # EEP 2-A
+                    return self.bitrate
+                elif self.protection.level == 2:  # EEP 3-A
+                    return (self.bitrate * 6) >> 3  # bitrate * 0.75
+                elif self.protection.level == 3:  # EEP 4-A
+                    return self.bitrate >> 1  # bitrate * 0.5
+            elif self.protection.eep.profile == EEPProfile.EEP_B:
+                # EEP-B formulas
+                if self.protection.level == 0:  # EEP 1-B
+                    return (self.bitrate * 27) >> 5  # bitrate * 0.84375
+                elif self.protection.level == 1:  # EEP 2-B
+                    return (self.bitrate * 21) >> 5  # bitrate * 0.65625
+                elif self.protection.level == 2:  # EEP 3-B
+                    return (self.bitrate * 18) >> 5  # bitrate * 0.5625
+                elif self.protection.level == 3:  # EEP 4-B
+                    return (self.bitrate * 15) >> 5  # bitrate * 0.46875
         return 0
 
     def get_size_byte(self) -> int:

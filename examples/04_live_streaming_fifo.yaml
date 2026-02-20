@@ -1,0 +1,59 @@
+# Live Streaming via FIFO (Named Pipes)
+#
+# This example shows live streaming using FIFOs for local IPC.
+# Best for encoder and multiplexer on same machine.
+#
+# Setup:
+#   1. Create FIFOs:
+#      mkfifo /tmp/station1.fifo
+#      mkfifo /tmp/station2.fifo
+#
+#   2. Start encoders (in separate terminals):
+#      odr-audioenc -i /dev/audio -o /tmp/station1.fifo -b 48 --aaclc -r 48000 &
+#      odr-audioenc -i music.wav -o /tmp/station2.fifo -b 64 --aaclc -r 48000 &
+#
+#   3. Start multiplexer:
+#      python -m dabmux.cli -c 04_live_streaming_fifo.yaml -o output.eti -f raw
+#
+# Advantages:
+#   - Zero network overhead
+#   - Low latency
+#   - Simple setup
+#
+# Note: On macOS/Linux only (FIFOs not supported on Windows)
+
+ensemble:
+  id: 0xCE15
+  label: "Live FIFO"
+  short_label: "FIFO"
+  ecc: 0xE1
+
+services:
+  - uid: live1
+    sid: 0x5001
+    label: "Live Audio"
+    short_label: "Live"
+    type: audio
+    bitrate: 48
+    subchannel: live1
+    protection_level: 3
+
+  - uid: music
+    sid: 0x5002
+    label: "Music Stream"
+    short_label: "Music"
+    type: audio
+    bitrate: 64
+    subchannel: music
+    protection_level: 3
+
+subchannels:
+  - uid: live1
+    bitrate: 48
+    protection: EEP_3A
+    input_uri: fifo:///tmp/station1.fifo
+
+  - uid: music
+    bitrate: 64
+    protection: EEP_3A
+    input_uri: fifo:///tmp/station2.fifo

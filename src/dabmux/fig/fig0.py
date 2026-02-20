@@ -5,8 +5,11 @@ FIG Type 0 contains multiplex configuration information (MCI).
 This module implements the most important FIG 0 variants.
 """
 import struct
+import structlog
 from typing import List
-from dabmux.fig.base import FIGBase, FIGRate, FillStatus
+from dabmux.fig.base import FIGBase, FIGRate, FillStatus, FIGPriority
+
+logger = structlog.get_logger()
 from dabmux.core.mux_elements import (
     DabEnsemble,
     DabSubchannel,
@@ -61,7 +64,7 @@ class FIG0_0(FIGBase):
         # Byte 0: FIG type (3 bits) | Length (5 bits)
         # Byte 1: CN | OE | PD | Extension
         fig_type = 0  # Type 0
-        length = 5    # 5 bytes of data after header
+        length = 4    # 4 bytes of data after header
         cn = 0        # Current/Next: 0 = current
         oe = 0        # Other Ensemble: 0 = this ensemble
         pd = 0        # Programme/Data: 0 = programme services
@@ -90,6 +93,10 @@ class FIG0_0(FIGBase):
     def repetition_rate(self) -> FIGRate:
         """FIG 0/0 has special rate (every 96ms)."""
         return FIGRate.FIG0_0
+
+    def priority(self) -> FIGPriority:
+        """FIG 0/0 is CRITICAL - must be in every frame."""
+        return FIGPriority.CRITICAL
 
     def fig_type(self) -> int:
         """FIG type 0."""
@@ -156,7 +163,9 @@ class FIG0_1(FIGBase):
             subchannel = subchannels[self.subchannel_index]
 
             # Determine if UEP or EEP
-            is_uep = subchannel.protection.form == ProtectionForm.UEP
+            # UEP uses short form (3 bytes), EEP uses long form (4 bytes)
+            # DAB+ always uses EEP because it has Reed-Solomon FEC
+            is_uep = (subchannel.protection.form == ProtectionForm.UEP)
 
             # UEP = 3 bytes, EEP = 4 bytes
             entry_size = 3 if is_uep else 4
@@ -170,7 +179,8 @@ class FIG0_1(FIGBase):
                 # Short form (UEP): 3 bytes
                 # Byte 0: SubChId (6 bits) | Start Address high (2 bits)
                 # Byte 1: Start Address low (8 bits)
-                # Byte 2: Table Index (6 bits) | Table Switch (1) | Form (1)
+                # Byte 2: Form (1 bit) | Table Switch (1 bit) | Table Index (6 bits)
+                # According to ETSI EN 300 799, bit layout is: Bit 7=Form, Bit 6=Switch, Bits 5-0=Table Index
                 start_addr = subchannel.start_address
                 table_index = subchannel.protection.to_tpl(subchannel.bitrate) & 0x3F
                 table_switch = 0  # Always 0 for now
@@ -178,7 +188,7 @@ class FIG0_1(FIGBase):
 
                 buf[pos] = (subchannel.id << 2) | ((start_addr >> 8) & 0x03)
                 buf[pos + 1] = start_addr & 0xFF
-                buf[pos + 2] = (table_index << 2) | (table_switch << 1) | form
+                buf[pos + 2] = (form << 7) | (table_switch << 6) | table_index
 
                 pos += 3
                 bytes_written_data += 3
@@ -194,9 +204,20 @@ class FIG0_1(FIGBase):
                 option = subchannel.protection.eep.get_option() if subchannel.protection.eep else 0
                 form = 1  # 1 = long form (EEP)
 
+                logger.debug(
+                    "Encoding EEP subchannel",
+                    subchan_id=subchannel.id,
+                    subchan_type=subchannel.type,
+                    start_addr=start_addr,
+                    size_cu=size_cu,
+                    protection_level=protection_level,
+                    option=option,
+                    form=form
+                )
+
                 buf[pos] = (subchannel.id << 2) | ((start_addr >> 8) & 0x03)
                 buf[pos + 1] = start_addr & 0xFF
-                buf[pos + 2] = ((size_cu >> 8) & 0x03) << 6 | (protection_level & 0x03) << 4 | (option & 0x07) << 1 | form
+                buf[pos + 2] = (form << 7) | ((option & 0x07) << 4) | ((protection_level & 0x03) << 2) | ((size_cu >> 8) & 0x03)
                 buf[pos + 3] = size_cu & 0xFF
 
                 pos += 4
@@ -231,6 +252,10 @@ class FIG0_1(FIGBase):
     def repetition_rate(self) -> FIGRate:
         """FIG 0/1 transmitted at rate B (once per second)."""
         return FIGRate.B
+
+    def priority(self) -> FIGPriority:
+        """FIG 0/1 is HIGH - subchannel organization needed for initial tuning."""
+        return FIGPriority.HIGH
 
     def fig_type(self) -> int:
         """FIG type 0."""
@@ -419,6 +444,10 @@ class FIG0_2(FIGBase):
     def repetition_rate(self) -> FIGRate:
         """FIG 0/2 transmitted at rate A_B."""
         return FIGRate.A_B
+
+    def priority(self) -> FIGPriority:
+        """FIG 0/2 is HIGH - service organization needed for service discovery."""
+        return FIGPriority.HIGH
 
     def fig_type(self) -> int:
         """FIG type 0."""

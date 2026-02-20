@@ -1,0 +1,61 @@
+# Simple Single Service Configuration
+#
+# This example shows the minimal configuration for a single DAB+ service.
+#
+# Prerequisites:
+#   1. Encode audio with ODR-AudioEnc:
+#      odr-audioenc -i music.wav -o music.dabp -b 48 --aaclc -r 48000
+#
+#   2. Run multiplexer:
+#      python -m dabmux.cli -c 01_simple_single_service.yaml -o output.eti -f raw
+#
+#   3. Test with dablin:
+#      dablin output.eti
+
+ensemble:
+  # Ensemble ID (16-bit hex, unique per ensemble)
+  id: 0xCE15
+
+  # Ensemble label (max 16 characters)
+  label: "Test Ensemble"
+
+  # Short label (max 8 characters, for small displays)
+  short_label: "TestEns"
+
+  # Extended Country Code (ECC)
+  ecc: 0xE1  # Germany
+
+services:
+  - uid: service1
+    # Service ID (16-bit hex)
+    sid: 0x5001
+
+    # Service label (max 16 characters)
+    label: "Music Station"
+
+    # Short label (max 8 characters)
+    short_label: "Music"
+
+    # Service type
+    type: audio
+
+    # Bitrate in kbps (must match encoded file)
+    bitrate: 48
+
+    # Subchannel reference
+    subchannel: service1
+
+    # Protection level (1-5, higher = more error protection)
+    # 3 is recommended for DAB+
+    protection_level: 3
+
+subchannels:
+  - uid: service1
+    # Bitrate in kbps
+    bitrate: 48
+
+    # Protection type (EEP_3A recommended for DAB+)
+    protection: EEP_3A
+
+    # Input source (pre-encoded .dabp file)
+    input_uri: file://music.dabp

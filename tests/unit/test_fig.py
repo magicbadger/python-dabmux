@@ -83,7 +83,7 @@ class TestFIG0_0:
 
         # Check header
         assert (buf[0] >> 5) == 0  # FIG type 0
-        assert (buf[0] & 0x1F) == 5  # Length 5
+        assert (buf[0] & 0x1F) == 4  # Length 4 (data bytes after header)
 
         # Check extension
         assert (buf[1] & 0x1F) == 0  # Extension 0

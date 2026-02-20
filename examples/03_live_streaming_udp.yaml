@@ -1,0 +1,55 @@
+# Live Streaming via UDP
+#
+# This example shows live streaming setup using UDP for network distribution.
+# Useful for distributed encoding where encoder and multiplexer run on
+# different machines.
+#
+# Setup:
+#   1. On encoder machine, start ODR-AudioEnc:
+#      odr-audioenc -i /dev/audio -o udp://mux-server:9000 -b 48 --aaclc -r 48000
+#      odr-audioenc -i station2.wav -o udp://mux-server:9001 -b 64 --aaclc -r 48000
+#
+#   2. On multiplexer machine, run:
+#      python -m dabmux.cli -c 03_live_streaming_udp.yaml -o output.eti -f raw
+#
+# Network requirements:
+#   - Low latency network (< 10ms recommended)
+#   - Sufficient bandwidth (bitrate * 1.5 recommended)
+#   - Firewall allows UDP ports
+
+ensemble:
+  id: 0xCE15
+  label: "Live Network"
+  short_label: "Live"
+  ecc: 0xE1
+
+services:
+  - uid: live1
+    sid: 0x5001
+    label: "Live Station 1"
+    short_label: "Live1"
+    type: audio
+    bitrate: 48
+    subchannel: live1
+    protection_level: 3
+
+  - uid: live2
+    sid: 0x5002
+    label: "Live Station 2"
+    short_label: "Live2"
+    type: audio
+    bitrate: 64
+    subchannel: live2
+    protection_level: 3
+
+subchannels:
+  # Receive from encoder via UDP
+  - uid: live1
+    bitrate: 48
+    protection: EEP_3A
+    input_uri: udp://0.0.0.0:9000  # Listen on all interfaces, port 9000
+
+  - uid: live2
+    bitrate: 64
+    protection: EEP_3A
+    input_uri: udp://0.0.0.0:9001  # Listen on all interfaces, port 9001

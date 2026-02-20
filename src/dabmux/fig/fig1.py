@@ -5,7 +5,7 @@ FIG Type 1 contains labels for ensemble, services, and components.
 This module implements FIG 1/0 (ensemble label) and FIG 1/1 (service labels).
 """
 import struct
-from dabmux.fig.base import FIGBase, FIGRate, FillStatus
+from dabmux.fig.base import FIGBase, FIGRate, FillStatus, FIGPriority
 from dabmux.core.mux_elements import DabEnsemble
 
 
@@ -79,6 +79,10 @@ class FIG1_0(FIGBase):
         """FIG 1/0 transmitted at rate B (once per second)."""
         return FIGRate.B
 
+    def priority(self) -> FIGPriority:
+        """FIG 1/0 is HIGH - ensemble label needed for initial display."""
+        return FIGPriority.HIGH
+
     def fig_type(self) -> int:
         """FIG type 1."""
         return 1
@@ -108,6 +112,7 @@ class FIG1_1(FIGBase):
         super().__init__()
         self.ensemble = ensemble
         self.service_index = 0
+        self._initial_announcement_complete = False
 
     def fill(self, buf: bytearray, max_size: int) -> FillStatus:
         """
@@ -184,12 +189,23 @@ class FIG1_1(FIGBase):
         if self.service_index >= len(programme_services):
             self.service_index = 0
             status.complete_fig_transmitted = True
+            self._initial_announcement_complete = True
 
         return status
 
     def repetition_rate(self) -> FIGRate:
-        """FIG 1/1 transmitted at rate A_B."""
-        return FIGRate.A_B
+        """
+        FIG 1/1 uses rate A (100ms) for initial announcement, then A_B (500ms).
+
+        This ensures service labels are announced quickly on initial tuning.
+        """
+        if not self._initial_announcement_complete:
+            return FIGRate.A  # Fast for initial announcement
+        return FIGRate.A_B  # Normal rate after all announced
+
+    def priority(self) -> FIGPriority:
+        """FIG 1/1 is NORMAL - service labels needed but not critical."""
+        return FIGPriority.NORMAL
 
     def fig_type(self) -> int:
         """FIG type 1."""
@@ -307,6 +323,10 @@ class FIG1_4(FIGBase):
     def repetition_rate(self) -> FIGRate:
         """FIG 1/4 transmitted at rate C (once every 10 seconds)."""
         return FIGRate.C
+
+    def priority(self) -> FIGPriority:
+        """FIG 1/4 is LOW - component labels are optional."""
+        return FIGPriority.LOW
 
     def fig_type(self) -> int:
         """FIG type 1."""

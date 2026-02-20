@@ -1,107 +1,242 @@
-# DAB+ Examples
+# python-dabmux Examples
 
-This directory contains example configurations for the python-dabmux DAB multiplexer.
+This directory contains example configurations for common use cases.
 
-## mexico_example.yaml
+## Quick Start
 
-Complete working example demonstrating DAB+ (HE-AAC v2) audio broadcasting.
+### 1. Simple Single Service
 
-### Prerequisites
-
-- [odr-audioenc](https://github.com/Opendigitalradio/ODR-AudioEnc) - DAB+ audio encoder
-- [dablin](https://github.com/Opendigitalradio/dablin) - DAB/DAB+ player (optional, for testing)
-
-### Workflow
-
-#### 1. Encode audio to DAB+ format (.dabp)
+The simplest configuration with one audio service:
 
 ```bash
-# Convert source to WAV
-ffmpeg -i mexico.aac -ar 48000 -ac 2 mexico_audio.wav
+# Encode audio
+odr-audioenc -i music.wav -o music.dabp -b 48 --aaclc -r 48000
 
-# Encode with odr-audioenc
-odr-audioenc -i mexico_audio.wav -b 48 -c 2 -r 48000 --ps -o mexico_encoded.dabp
+# Generate ETI
+python -m dabmux.cli -c examples/01_simple_single_service.yaml -o output.eti -f raw
+
+# Test playback
+dablin output.eti
 ```
 
-**Parameters:**
-- `-b 48`: 48 kbps bitrate
-- `-c 2`: Stereo (2 channels)
-- `-r 48000`: 48 kHz sample rate
-- `--ps`: Enable Parametric Stereo (for HE-AAC v2)
+**Files:** `01_simple_single_service.yaml`
 
-#### 2. Generate ETI file
+### 2. Multi-Service Multiplex
+
+Multiple services at different bitrates:
 
 ```bash
-python -m dabmux.cli -c examples/mexico_example.yaml -o mexico_example.eti -f raw -n 300
+# Encode all services
+odr-audioenc -i music.wav -o music.dabp -b 64 --aaclc -r 48000
+odr-audioenc -i news.wav -o news.dabp -b 48 --aaclc -r 48000
+odr-audioenc -i talk.wav -o talk.dabp -b 32 --aaclc -r 48000 --mono
+
+# Generate ETI
+python -m dabmux.cli -c examples/02_multi_service.yaml -o output.eti -f raw
 ```
 
-**Parameters:**
-- `-c`: Configuration file
-- `-o`: Output ETI file
-- `-f raw`: RAW format (for dablin compatibility)
-- `-n 300`: Generate 300 frames (~7 seconds)
+**Files:** `02_multi_service.yaml`
 
-#### 3. Play with dablin
+### 3. Live Streaming (UDP)
+
+Network-based live streaming:
 
 ```bash
-dablin -s 0x5001 < mexico_example.eti
+# On encoder machine
+odr-audioenc -i /dev/audio -o udp://mux-server:9000 -b 48 --aaclc -r 48000
+
+# On multiplexer machine
+python -m dabmux.cli -c examples/03_live_streaming_udp.yaml -o output.eti -f raw
 ```
 
-### Configuration Details
+**Files:** `03_live_streaming_udp.yaml`
 
-**Ensemble:**
-- ID: `0xCE15`
-- ECC: `0xE1` (Europe)
-- Label: "Mexico DAB+"
+### 4. Live Streaming (FIFO)
 
-**Service:**
-- ID: `0x5001`
-- Label: "Mexico Music"
+Local live streaming via named pipes:
 
-**Subchannel:**
-- Type: DAB+ (HE-AAC v2)
-- Bitrate: 48 kbps
-- Protection: UEP level 2
-- Input: Pre-encoded .dabp file from odr-audioenc
+```bash
+# Create FIFOs
+mkfifo /tmp/station1.fifo /tmp/station2.fifo
 
-### Technical Notes
+# Start encoders (background)
+odr-audioenc -i /dev/audio -o /tmp/station1.fifo -b 48 --aaclc -r 48000 &
+odr-audioenc -i music.wav -o /tmp/station2.fifo -b 64 --aaclc -r 48000 &
 
-**DAB+ File Format (.dabp):**
-- Contains RS(120,110) error correction already applied
-- Superframe size: `(bitrate / 8) * 120` bytes
-  - For 48 kbps: 720 bytes per superframe
-- Access Unit (AU) size: `superframe_size / 5`
-  - For 48 kbps: 144 bytes per AU
-- Each superframe covers 5 ETI frames (120ms total, 24ms per frame)
-
-**Supported Bitrates:**
-- 24 kbps: 360 bytes/superframe, 72 bytes/AU
-- 32 kbps: 480 bytes/superframe, 96 bytes/AU
-- 48 kbps: 720 bytes/superframe, 144 bytes/AU
-- 64 kbps: 960 bytes/superframe, 192 bytes/AU
-- 80 kbps: 1200 bytes/superframe, 240 bytes/AU
-
-### Expected Output
-
-```
-FICDecoder: EId 0xCE15: ensemble label 'Mexico DAB+'
-FICDecoder: SId 0x5001: programme service label 'Mexico Music'
-EnsemblePlayer: format: HE-AAC v2, 48 kHz Stereo @ 48 kBit/s
-[Clean audio playback with smooth timer progression]
+# Start multiplexer
+python -m dabmux.cli -c examples/04_live_streaming_fifo.yaml -o output.eti -f raw
 ```
 
-### Troubleshooting
+**Files:** `04_live_streaming_fifo.yaml`
 
-**No audio output:**
-- Verify .dabp file is correctly encoded with odr-audioenc
-- Check bitrate in config matches encoding bitrate
-- Ensure file path in config is absolute (starting with `file://`)
+## Configuration Reference
 
-**"(AU #2)" warnings:**
-- This indicates AU alignment issues
-- Verify using latest DABPFileInput implementation
-- Confirm file size is exact multiple of superframe size (720 bytes for 48 kbps)
+### Ensemble Settings
 
-**Format not detected:**
-- Ensure audio was encoded with `--ps` flag for HE-AAC v2
-- Check that sample rate is 48 kHz
+```yaml
+ensemble:
+  id: 0xCE15              # 16-bit hex identifier
+  label: "My Ensemble"    # Up to 16 characters
+  short_label: "MyEns"    # Up to 8 characters
+  ecc: 0xE1              # Extended Country Code
+```
+
+### Service Settings
+
+```yaml
+services:
+  - uid: service1         # Unique identifier
+    sid: 0x5001          # Service ID (16-bit hex)
+    label: "Station"     # Up to 16 characters
+    short_label: "Stn"   # Up to 8 characters
+    type: audio          # Service type
+    bitrate: 48          # Bitrate in kbps
+    subchannel: service1 # Subchannel reference
+    protection_level: 3  # Error protection (1-5)
+```
+
+### Subchannel Settings
+
+```yaml
+subchannels:
+  - uid: service1
+    bitrate: 48              # Must match service bitrate
+    protection: EEP_3A       # Protection type (recommended for DAB+)
+    input_uri: file://audio.dabp  # Input source
+```
+
+### Input URI Formats
+
+**File Input:**
+```yaml
+input_uri: file:///path/to/audio.dabp
+input_uri: /path/to/audio.dabp  # file:// prefix optional
+```
+
+**UDP Input:**
+```yaml
+input_uri: udp://0.0.0.0:9000  # Listen on all interfaces
+input_uri: udp://127.0.0.1:9000  # Listen on localhost only
+```
+
+**FIFO Input:**
+```yaml
+input_uri: fifo:///tmp/audio.fifo
+```
+
+## Bitrate Recommendations
+
+| Content Type | Bitrate | Quality | Use Case |
+|--------------|---------|---------|----------|
+| Speech       | 24 kbps | Good    | Talk radio, podcasts |
+| Talk + Music | 32 kbps | Good    | Mixed content |
+| Music        | 48 kbps | Acceptable | Space-constrained |
+| Music        | 64 kbps | Good    | Standard quality |
+| Music        | 80 kbps | Very Good | High quality |
+| Music        | 96 kbps | Premium | Best quality |
+
+## Protection Levels
+
+| Level | Description | Use Case |
+|-------|-------------|----------|
+| 1     | Minimal protection | Studio/cable transmission |
+| 2     | Low protection | Good RF conditions |
+| **3** | **Medium (recommended)** | **Normal broadcasting** |
+| 4     | High protection | Poor RF conditions |
+| 5     | Maximum protection | Severe interference |
+
+**Note:** Level 3 (EEP_3A) is recommended for most DAB+ services.
+
+## Capacity Planning
+
+DAB Mode I capacity: ~1200 kbps total
+
+Example allocations:
+- **4 services @ 48 kbps** = 192 kbps (leaves ~1000 kbps for more)
+- **3 services @ 64 kbps** = 192 kbps
+- **2 services @ 96 kbps** = 192 kbps
+- **Mixed:** 2×96 + 2×64 + 2×48 = 416 kbps
+
+Remember to account for FEC overhead (~25%) when planning capacity.
+
+## Testing
+
+### With dablin (DAB player)
+
+```bash
+# Play ETI file
+dablin output.eti
+
+# Select specific service
+dablin -s 0x5001 output.eti
+
+# Verbose output
+dablin -v output.eti
+```
+
+### With etisnoop (ETI analyzer)
+
+```bash
+# Analyze ETI structure
+etisnoop output.eti
+
+# Verbose analysis
+etisnoop -v output.eti
+```
+
+## Troubleshooting
+
+### "Failed to open DAB+ input"
+
+**Cause:** Input file doesn't exist or is not a valid .dabp file
+
+**Solution:**
+1. Check file path is correct
+2. Verify file was created by odr-audioenc
+3. Ensure bitrate in config matches encoded bitrate
+
+### "PAD/DLS not supported"
+
+**Cause:** Trying to add PAD to pre-encoded .dabp files
+
+**Solution:** PAD must be encoded during audio encoding:
+```bash
+odr-audioenc -i music.wav -o music.dabp -b 48 --pad 58 --dls nowplaying.txt
+```
+
+### "UDP buffer overflow"
+
+**Cause:** Network too slow or multiplexer overloaded
+
+**Solution:**
+1. Check network latency
+2. Reduce number of services
+3. Use FIFO for local streaming instead
+
+## Advanced Topics
+
+### Custom Protection Profiles
+
+```yaml
+subchannels:
+  - uid: service1
+    bitrate: 48
+    protection: UEP_3  # Unequal Error Protection
+    # Or custom EEP
+    protection: EEP_2B
+```
+
+### Multiple Output Formats
+
+Generate ETI in multiple formats simultaneously by running multiple instances
+or using output duplication.
+
+## Further Reading
+
+- [ODR-DabMux Documentation](https://github.com/Opendigitalradio/ODR-DabMux)
+- [ODR-AudioEnc Documentation](https://github.com/Opendigitalradio/ODR-AudioEnc)
+- [ETSI DAB Standards](https://www.etsi.org/technologies/radio/dab)
+
+## License
+
+These examples are provided as-is for educational and testing purposes.

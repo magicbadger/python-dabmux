@@ -192,9 +192,9 @@ Examples:
         Create and add input sources from ensemble configuration.
 
         Reads input_uri from each subchannel and creates appropriate
-        input sources (File, UDP, TCP, etc.).
+        input sources using the unified InputFactory.
         """
-        from urllib.parse import urlparse
+        from dabmux.input.factory import InputFactory
 
         for subchannel in self.mux.ensemble.subchannels:
             if not subchannel.input_uri:
@@ -204,59 +204,42 @@ Examples:
                 )
                 continue
 
-            # Parse input URI
             uri = subchannel.input_uri
-            parsed = urlparse(uri)
 
             try:
-                if parsed.scheme == 'file' or parsed.scheme == '':
-                    # File input - use MPEG for audio, Raw for data
-                    file_path = parsed.path if parsed.scheme == 'file' else uri
-                    logger.info(
-                        "Adding file input",
+                # Validate URI first
+                valid, error = InputFactory.validate_uri(uri, subchannel.type)
+                if not valid:
+                    logger.error(
+                        "Invalid input URI",
                         subchannel=subchannel.uid,
-                        file=file_path
+                        uri=uri,
+                        error=error
                     )
-                    # Use appropriate input type based on subchannel type
-                    from dabmux.core.mux_elements import SubchannelType
-                    if subchannel.type == SubchannelType.DABPlusAudio:
-                        # DAB+ uses AAC or pre-encoded .dabp files
-                        if file_path.endswith('.dabp'):
-                            from dabmux.input.dabp_file import DABPFileInput
-                            input_source = DABPFileInput()
-                        else:
-                            from dabmux.input.file import AACFileInput
-                            input_source = AACFileInput()
-                    elif subchannel.type == SubchannelType.DABAudio:
-                        # DAB uses MPEG Layer II audio
-                        input_source = MPEGFileInput()
-                    else:
-                        # Data subchannels use raw input
-                        input_source = RawFileInput()
-                    # Configure input source
-                    input_source._load_entire_file = True  # Enable file preloading for looping
-                    input_source.set_bitrate(subchannel.bitrate)  # Set expected bitrate
-                    input_source.open(file_path)
-                    self.mux.add_input(subchannel.uid, input_source)
+                    continue
 
-                elif parsed.scheme == 'udp':
-                    logger.error(
-                        "UDP input not yet implemented",
-                        subchannel=subchannel.uid
-                    )
+                # Create input source using unified factory
+                logger.info(
+                    "Creating input source",
+                    subchannel=subchannel.uid,
+                    uri=uri,
+                    type=subchannel.type
+                )
 
-                elif parsed.scheme == 'tcp':
-                    logger.error(
-                        "TCP input not yet implemented",
-                        subchannel=subchannel.uid
-                    )
+                input_source = InputFactory.create(
+                    uri=uri,
+                    subchannel_type=subchannel.type,
+                    bitrate=subchannel.bitrate,
+                    loop=True  # Enable looping for file inputs
+                )
 
-                else:
-                    logger.error(
-                        "Unsupported input URI scheme",
-                        subchannel=subchannel.uid,
-                        uri=uri
-                    )
+                # Add to multiplexer
+                self.mux.add_input(subchannel.uid, input_source)
+
+                logger.info(
+                    "Input source created successfully",
+                    subchannel=subchannel.uid
+                )
 
             except Exception as e:
                 logger.error(

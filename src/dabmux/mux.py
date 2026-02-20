@@ -10,9 +10,14 @@ import structlog
 from dabmux.core.eti import EtiFrame
 from dabmux.core.mux_elements import DabEnsemble, DabSubchannel
 from dabmux.input.base import InputBase
+from dabmux.input.dabplus_input import DABPlusInput
 from dabmux.output.base import DabOutput
 from dabmux.utils.crc import crc16
 from dabmux.fig.fic import FICEncoder
+from dabmux.pad.base import PADInput
+from dabmux.pad.dls import DLSEncoder
+from dabmux.pad.xpad import XPADEncoder
+from dabmux.pad.input.file_monitor import FileMonitorInput
 
 logger = structlog.get_logger()
 
@@ -41,6 +46,10 @@ class DabMultiplexer:
         # Initialize FIC encoder
         self.fic_encoder = FICEncoder(ensemble)
 
+        # PAD (Programme Associated Data) encoders and inputs
+        self.pad_encoders: Dict[str, XPADEncoder] = {}
+        self.pad_inputs: Dict[str, PADInput] = {}
+
     def add_input(self, subchannel_uid: str, input_source: InputBase) -> None:
         """
         Add an input source for a subchannel.
@@ -63,6 +72,10 @@ class DabMultiplexer:
         self.inputs[subchannel_uid] = input_source
         logger.info("Added input", subchannel=subchannel_uid)
 
+        # Setup PAD if configured for this subchannel
+        if subchannel.pad and subchannel.pad.enabled:
+            self._setup_pad(subchannel)
+
     def add_output(self, output: DabOutput) -> None:
         """
         Add an output destination.
@@ -72,6 +85,96 @@ class DabMultiplexer:
         """
         self.outputs.append(output)
         logger.info("Added output", info=output.get_info())
+
+    def _setup_pad(self, subchannel: DabSubchannel) -> None:
+        """
+        Setup PAD encoder for a subchannel.
+
+        Creates DLS encoder, PAD input source, and X-PAD encoder
+        for the given subchannel based on its PAD configuration.
+
+        Args:
+            subchannel: Subchannel with PAD configuration
+        """
+        pad_config = subchannel.pad
+        if not pad_config or not pad_config.enabled:
+            return
+
+        if not pad_config.dls or not pad_config.dls.enabled:
+            logger.info("PAD enabled but DLS disabled", subchannel=subchannel.uid)
+            return
+
+        # Check if input is pre-encoded DAB+ stream (.dabp file, UDP, FIFO)
+        input_source = self.inputs.get(subchannel.uid)
+        if input_source and isinstance(input_source, DABPlusInput):
+            # Pre-encoded DAB+ streams from ODR-AudioEnc are already RS-encoded
+            # PAD cannot be added after encoding
+            logger.warning(
+                "PAD/DLS not supported with pre-encoded DAB+ streams from ODR-AudioEnc",
+                subchannel=subchannel.uid,
+                note="Encode PAD during audio encoding with odr-audioenc --pad option"
+            )
+            return
+
+        # Create DLS encoder
+        dls_encoder = DLSEncoder(charset=pad_config.dls.charset)
+
+        # Set default label if provided
+        if pad_config.dls.default_label:
+            dls_encoder.set_label(pad_config.dls.default_label)
+
+        # Create PAD input source based on type
+        pad_input: Optional[PADInput] = None
+
+        if pad_config.dls.input_type == 'file':
+            if not pad_config.dls.input_path:
+                logger.warning("File input type specified but no path provided",
+                             subchannel=subchannel.uid)
+                return
+
+            pad_input = FileMonitorInput(
+                file_path=pad_config.dls.input_path,
+                poll_interval=pad_config.dls.poll_interval
+            )
+
+        elif pad_config.dls.input_type == 'fifo':
+            logger.warning("FIFO input not yet implemented", subchannel=subchannel.uid)
+            return
+
+        elif pad_config.dls.input_type == 'zeromq':
+            logger.warning("ZeroMQ input not yet implemented", subchannel=subchannel.uid)
+            return
+
+        else:
+            logger.error("Unknown PAD input type",
+                        subchannel=subchannel.uid,
+                        input_type=pad_config.dls.input_type)
+            return
+
+        # Load initial DLS text from input if available
+        if pad_input:
+            initial_text = pad_input.get_dls_text()
+            if initial_text:
+                dls_encoder.set_label(initial_text)
+                logger.info("Initial DLS text loaded",
+                          subchannel=subchannel.uid,
+                          text=initial_text[:50])
+
+        # Create X-PAD encoder
+        xpad_encoder = XPADEncoder(
+            pad_length=pad_config.length,
+            dls_encoder=dls_encoder
+        )
+
+        # Store encoders
+        self.pad_encoders[subchannel.uid] = xpad_encoder
+        self.pad_inputs[subchannel.uid] = pad_input
+
+        logger.info("PAD configured for subchannel",
+                   subchannel=subchannel.uid,
+                   pad_length=pad_config.length,
+                   input_type=pad_config.dls.input_type,
+                   input_path=pad_config.dls.input_path)
 
     def generate_frame(self) -> EtiFrame:
         """
@@ -104,6 +207,16 @@ class DabMultiplexer:
         fic_data = self.fic_encoder.encode_fic(self.frame_count)
         frame.fic_data = fic_data
 
+        # Update PAD inputs (check for DLS text changes)
+        for uid, pad_input in self.pad_inputs.items():
+            if pad_input.update():
+                # DLS text changed
+                new_text = pad_input.get_dls_text()
+                if new_text and uid in self.pad_encoders:
+                    encoder = self.pad_encoders[uid]
+                    encoder.dls_encoder.set_label(new_text)
+                    logger.debug("DLS updated", subchannel=uid, text=new_text[:30])
+
         # Read subchannel data from inputs (Phase 3)
         mst_data = bytearray()
 
@@ -124,6 +237,13 @@ class DabMultiplexer:
             # Read data from input if available
             if input_source and input_source.is_open:
                 try:
+                    # Provide PAD to input BEFORE reading (for inputs with FEC like AAC)
+                    if subchannel.uid in self.pad_encoders and hasattr(input_source, 'set_pad_data'):
+                        pad_encoder = self.pad_encoders[subchannel.uid]
+                        pad_data = pad_encoder.encode_pad()
+                        input_source.set_pad_data(pad_data)
+
+                    # Read frame (already includes PAD if input supports set_pad_data)
                     data = input_source.read_frame(subchannel_size)
                     if len(data) < subchannel_size:
                         # Pad with zeros if underrun
@@ -134,22 +254,56 @@ class DabMultiplexer:
                             received=len(data)
                         )
                         data += bytes(subchannel_size - len(data))
-                    mst_data.extend(data[:subchannel_size])
+
+                    # Ensure we have exactly subchannel_size bytes of audio
+                    frame_data = data[:subchannel_size]
+
+                    # For inputs without set_pad_data, append PAD after reading (MPEG pattern)
+                    if subchannel.uid in self.pad_encoders and not hasattr(input_source, 'set_pad_data'):
+                        pad_encoder = self.pad_encoders[subchannel.uid]
+                        pad_data = pad_encoder.encode_pad()
+                        frame_data += pad_data
+
+                    # Pad to 8-byte boundary as required by ETI
+                    padding_needed = (8 - (len(frame_data) % 8)) % 8
+                    frame_data += bytes(padding_needed)
+                    mst_data.extend(frame_data)
+
                 except Exception as e:
                     logger.error(
                         "Failed to read from input",
                         subchannel=subchannel.uid,
                         error=str(e)
                     )
-                    # Use silence on error
-                    mst_data.extend(bytes(subchannel_size))
+                    # Use silence on error (with PAD if configured)
+                    silence = bytes(subchannel_size)
+                    if subchannel.uid in self.pad_encoders and not hasattr(input_source, 'set_pad_data'):
+                        pad_encoder = self.pad_encoders[subchannel.uid]
+                        pad_data = pad_encoder.encode_pad()
+                        silence += pad_data
+                    # Pad to 8-byte boundary
+                    padding_needed = (8 - (len(silence) % 8)) % 8
+                    mst_data.extend(silence + bytes(padding_needed))
             else:
-                # No input configured, use silence
-                mst_data.extend(bytes(subchannel_size))
+                # No input configured, use silence (with PAD if configured)
+                silence = bytes(subchannel_size)
+                if subchannel.uid in self.pad_encoders:
+                    pad_encoder = self.pad_encoders[subchannel.uid]
+                    pad_data = pad_encoder.encode_pad()
+                    silence += pad_data
+                # Pad to 8-byte boundary
+                padding_needed = (8 - (len(silence) % 8)) % 8
+                mst_data.extend(silence + bytes(padding_needed))
 
             # Create STC header
-            # STL is size in 64-bit words
-            stl = (subchannel_size + 7) // 8  # Round up to 64-bit words
+            # STL is size in 64-bit words, includes audio + PAD if configured
+            actual_size = subchannel_size
+            if subchannel.uid in self.pad_encoders and not hasattr(input_source, 'set_pad_data'):
+                # Only add PAD size if input doesn't embed PAD (MPEG pattern)
+                pad_encoder = self.pad_encoders[subchannel.uid]
+                actual_size += pad_encoder.pad_length
+
+            stl = (actual_size + 7) // 8  # Round up to 64-bit words
 
             stc = EtiSTC(
                 scid=subchannel.id,

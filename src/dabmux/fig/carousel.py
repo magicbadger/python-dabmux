@@ -22,6 +22,8 @@ class FIGCarousel:
     def __init__(self) -> None:
         """Initialize the carousel."""
         self.figs: List[FIGBase] = []
+        self._start_time_ms: int = 0
+        self._initial_phase_duration_ms: int = 5000  # 5 seconds
 
     def add_fig(self, fig: FIGBase) -> None:
         """
@@ -55,8 +57,20 @@ class FIGCarousel:
         pos = 0
         current_time_ms = get_current_time_ms()
 
+        # Initialize start time on first call
+        if self._start_time_ms == 0:
+            self._start_time_ms = current_time_ms
+
+        # Check if we're in the initial announcement phase
+        in_initial_phase = (current_time_ms - self._start_time_ms) < self._initial_phase_duration_ms
+
+        # Sort FIGs by priority during initial phase for faster service announcement
+        figs_to_process = self.figs
+        if in_initial_phase:
+            figs_to_process = sorted(self.figs, key=lambda fig: fig.priority().value)
+
         # Try to fill the FIB with FIGs
-        for fig in self.figs:
+        for fig in figs_to_process:
             # Check if this FIG should be transmitted now
             if not fig.should_transmit(current_time_ms):
                 continue
@@ -76,14 +90,17 @@ class FIGCarousel:
                 fib_data[pos:pos + status.num_bytes_written] = temp_buf[:status.num_bytes_written]
                 pos += status.num_bytes_written
 
-                # Mark FIG as transmitted
-                fig.mark_transmitted(current_time_ms)
+                # Mark FIG as transmitted with completion status
+                fig.mark_transmitted(current_time_ms, status.complete_fig_transmitted)
 
                 logger.debug(
                     "Wrote FIG",
                     fig=fig.name(),
+                    priority=fig.priority().name,
                     bytes=status.num_bytes_written,
-                    complete=status.complete_fig_transmitted
+                    complete=status.complete_fig_transmitted,
+                    in_progress=not status.complete_fig_transmitted,
+                    priority_mode=in_initial_phase
                 )
 
                 # If FIB is full, stop

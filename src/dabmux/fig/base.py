@@ -11,6 +11,19 @@ from typing import Optional
 import time
 
 
+class FIGPriority(Enum):
+    """
+    FIG transmission priority for scheduling.
+
+    Determines order of transmission, especially important for initial
+    service announcements.
+    """
+    CRITICAL = 1   # Must be in every frame (FIG 0/0)
+    HIGH = 2       # Should be in first frame (FIG 0/1, 0/2, 1/0)
+    NORMAL = 3     # Should be in first 2-3 frames (FIG 1/1)
+    LOW = 4        # Can be delayed (optional FIGs)
+
+
 class FIGRate(Enum):
     """
     FIG repetition rates according to ETSI TR 101 496-2 Table 3.6.1.
@@ -71,6 +84,8 @@ class FIGBase(ABC):
     def __init__(self) -> None:
         """Initialize the FIG."""
         self._last_transmission_ms: Optional[int] = None
+        self._transmission_in_progress: bool = False
+        self._completed_full_cycle: bool = False
 
     @abstractmethod
     def fill(self, buf: bytearray, max_size: int) -> FillStatus:
@@ -116,6 +131,15 @@ class FIGBase(ABC):
         """
         pass
 
+    def priority(self) -> FIGPriority:
+        """
+        Get the FIG priority for scheduling.
+
+        Returns:
+            FIG priority level (default: NORMAL)
+        """
+        return FIGPriority.NORMAL
+
     def name(self) -> str:
         """
         Get the FIG name (e.g., "0/0", "1/1").
@@ -135,21 +159,35 @@ class FIGBase(ABC):
         Returns:
             True if FIG should be transmitted
         """
-        if self._last_transmission_ms is None:
+        # Allow immediate retransmission if previous transmission was incomplete
+        if self._transmission_in_progress:
             return True
 
+        # If we've never transmitted or not completed a full cycle, transmit immediately
+        if self._last_transmission_ms is None or not self._completed_full_cycle:
+            return True
+
+        # Otherwise check repetition rate
         increment = rate_increment_ms(self.repetition_rate())
         elapsed = current_time_ms - self._last_transmission_ms
         return elapsed >= increment
 
-    def mark_transmitted(self, current_time_ms: int) -> None:
+    def mark_transmitted(self, current_time_ms: int, complete: bool = False) -> None:
         """
         Mark this FIG as transmitted at the given time.
 
         Args:
             current_time_ms: Current time in milliseconds
+            complete: True if complete FIG cycle finished (default: False for backwards compat)
         """
-        self._last_transmission_ms = current_time_ms
+        if complete:
+            self._last_transmission_ms = current_time_ms
+            self._transmission_in_progress = False
+            self._completed_full_cycle = True
+        else:
+            # Partial transmission - allow immediate retry in next FIB
+            self._transmission_in_progress = True
+            # Don't update _last_transmission_ms yet - allow immediate retry
 
 
 def get_current_time_ms() -> int:

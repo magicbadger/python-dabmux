@@ -1,0 +1,67 @@
+# Multi-Service Configuration
+#
+# This example shows a multiplex with multiple services at different bitrates.
+#
+# Prerequisites:
+#   1. Encode all audio files:
+#      odr-audioenc -i music.wav -o music.dabp -b 64 --aaclc -r 48000
+#      odr-audioenc -i news.wav -o news.dabp -b 48 --aaclc -r 48000
+#      odr-audioenc -i talk.wav -o talk.dabp -b 32 --aaclc -r 48000 --mono
+#
+#   2. Run multiplexer:
+#      python -m dabmux.cli -c 02_multi_service.yaml -o output.eti -f raw
+#
+# Total capacity: ~1200 kbps (DAB Mode I)
+
+ensemble:
+  id: 0xCE15
+  label: "Multi Station"
+  short_label: "Multi"
+  ecc: 0xE1
+
+services:
+  # Service 1: Music (high quality)
+  - uid: music
+    sid: 0x5001
+    label: "Music HD"
+    short_label: "MusicHD"
+    type: audio
+    bitrate: 64
+    subchannel: music
+    protection_level: 3
+
+  # Service 2: News/Talk (standard quality)
+  - uid: news
+    sid: 0x5002
+    label: "News Radio"
+    short_label: "News"
+    type: audio
+    bitrate: 48
+    subchannel: news
+    protection_level: 3
+
+  # Service 3: Talk (lower quality, mono)
+  - uid: talk
+    sid: 0x5003
+    label: "Talk Radio"
+    short_label: "Talk"
+    type: audio
+    bitrate: 32
+    subchannel: talk
+    protection_level: 3
+
+subchannels:
+  - uid: music
+    bitrate: 64
+    protection: EEP_3A
+    input_uri: file://music.dabp
+
+  - uid: news
+    bitrate: 48
+    protection: EEP_3A
+    input_uri: file://news.dabp
+
+  - uid: talk
+    bitrate: 32
+    protection: EEP_3A
+    input_uri: file://talk.dabp

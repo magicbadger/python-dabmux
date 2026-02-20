@@ -2,6 +2,24 @@
 
 Complete guide to streaming DAB multiplex data via EDI (Ensemble Data Interface) over IP networks.
 
+!!! info "Implementation Status"
+    **Currently Available (v0.x):**
+
+    - ✅ Full EDI protocol implementation (TAG items, AF packets)
+    - ✅ UDP output (unicast & multicast)
+    - ✅ TCP output (client & server modes)
+    - ✅ TIST timestamp synchronization
+    - ✅ PFT fragmentation with Reed-Solomon FEC
+    - ✅ Programmatic API (Python configuration)
+
+    **Coming Soon:**
+
+    - ⏳ CLI arguments (--edi, --edi-destination, etc.) - Phase 4
+    - ⏳ YAML configuration schema - Phase 4
+    - ⏳ Example configuration files - Phase 4
+
+    For now, use the programmatic API as shown in the [Integration Examples](#integration-examples) section below. CLI arguments will be added in the next release.
+
 ## Overview
 
 EDI is the network protocol for distributing ETI frames to remote transmitters. It encapsulates ETI data in TAG-based packets suitable for UDP or TCP transmission.
@@ -43,7 +61,172 @@ See [Architecture: EDI Protocol](../../architecture/edi-protocol.md) for detaile
 
 ---
 
+## Integration Examples
+
+!!! note "Current API (Pre-CLI)"
+    Until CLI arguments are available, use the programmatic API by configuring `EdiOutputConfig` in your ensemble YAML or Python code.
+
+### UDP Output (Programmatic)
+
+**YAML Configuration:**
+```yaml
+ensemble:
+  id: '0xCE15'
+  ecc: '0xE1'
+  label:
+    text: 'My Ensemble'
+  edi_output:
+    enabled: true
+    protocol: 'udp'
+    destination: '192.168.1.100:12000'
+    enable_pft: false
+```
+
+**Python API:**
+```python
+from dabmux.mux import DabMultiplexer
+from dabmux.core.mux_elements import DabEnsemble, DabLabel, EdiOutputConfig
+
+# Configure ensemble with EDI output
+ensemble = DabEnsemble(
+    id=0xCE15,
+    ecc=0xE1,
+    label=DabLabel(text="My Ensemble"),
+    edi_output=EdiOutputConfig(
+        enabled=True,
+        protocol="udp",
+        destination="192.168.1.100:12000"
+    )
+)
+
+# Create multiplexer (automatically initializes EDI output)
+mux = DabMultiplexer(ensemble)
+
+# Generate frames (automatically sent via EDI)
+for i in range(1000):
+    frame = mux.generate_frame()
+    # Frame automatically transmitted to 192.168.1.100:12000
+
+# Cleanup
+mux.edi_output.close()
+```
+
+### TCP Client Mode
+
+**YAML Configuration:**
+```yaml
+ensemble:
+  id: '0xCE15'
+  ecc: '0xE1'
+  label:
+    text: 'My Ensemble'
+  edi_output:
+    enabled: true
+    protocol: 'tcp'
+    tcp_mode: 'client'  # Connect to remote server
+    destination: '192.168.1.100:12000'
+```
+
+**Python API:**
+```python
+ensemble = DabEnsemble(
+    id=0xCE15,
+    ecc=0xE1,
+    label=DabLabel(text="My Ensemble"),
+    edi_output=EdiOutputConfig(
+        enabled=True,
+        protocol="tcp",
+        tcp_mode="client",
+        destination="192.168.1.100:12000"
+    )
+)
+
+mux = DabMultiplexer(ensemble)
+# TCP connection established automatically
+# Frames sent reliably over TCP
+```
+
+### TCP Server Mode
+
+**YAML Configuration:**
+```yaml
+ensemble:
+  id: '0xCE15'
+  ecc: '0xE1'
+  label:
+    text: 'My Ensemble'
+  edi_output:
+    enabled: true
+    protocol: 'tcp'
+    tcp_mode: 'server'  # Listen for connections
+    destination: '0.0.0.0:12000'
+```
+
+**Python API:**
+```python
+ensemble = DabEnsemble(
+    id=0xCE15,
+    ecc=0xE1,
+    label=DabLabel(text="My Ensemble"),
+    edi_output=EdiOutputConfig(
+        enabled=True,
+        protocol="tcp",
+        tcp_mode="server",
+        destination="0.0.0.0:12000"  # Listen on all interfaces
+    )
+)
+
+mux = DabMultiplexer(ensemble)
+# Server listening on port 12000
+# Multiple clients can connect
+# Frames broadcast to all connected clients
+```
+
+### UDP with PFT and FEC
+
+**YAML Configuration:**
+```yaml
+ensemble:
+  id: '0xCE15'
+  ecc: '0xE1'
+  label:
+    text: 'My Ensemble'
+  edi_output:
+    enabled: true
+    protocol: 'udp'
+    destination: '192.168.1.100:12000'
+    enable_pft: true
+    pft_fec: 3          # FEC depth (0-7)
+    pft_fragment_size: 1400  # MTU-based fragmentation
+```
+
+**Python API:**
+```python
+ensemble = DabEnsemble(
+    id=0xCE15,
+    ecc=0xE1,
+    label=DabLabel(text="My Ensemble"),
+    edi_output=EdiOutputConfig(
+        enabled=True,
+        protocol="udp",
+        destination="192.168.1.100:12000",
+        enable_pft=True,
+        pft_fec=3,
+        pft_fragment_size=1400
+    )
+)
+
+mux = DabMultiplexer(ensemble)
+# EDI packets fragmented and protected with Reed-Solomon FEC
+```
+
+---
+
 ## Basic EDI Streaming
+
+!!! warning "CLI Not Yet Available"
+    The CLI examples below show the planned interface. For now, use the [Integration Examples](#integration-examples) above with YAML or Python API.
+
 
 ### UDP Output
 

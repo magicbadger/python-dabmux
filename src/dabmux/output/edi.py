@@ -146,6 +146,10 @@ class EdiOutput(DabOutput):
             self._packets_sent += 1
             self._bytes_sent += len(af_data)
 
+    def is_open(self) -> bool:
+        """Check if UDP socket is open."""
+        return self._socket is not None
+
     def get_info(self) -> str:
         """
         Get output information string.

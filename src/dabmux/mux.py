@@ -8,7 +8,7 @@ from typing import List, Dict, Optional
 import structlog
 
 from dabmux.core.eti import EtiFrame
-from dabmux.core.mux_elements import DabEnsemble, DabSubchannel, ActiveAnnouncement
+from dabmux.core.mux_elements import DabEnsemble, DabSubchannel, ActiveAnnouncement, EdiOutputConfig
 from dabmux.input.base import InputBase
 from dabmux.input.dabplus_input import DABPlusInput
 from dabmux.output.base import DabOutput
@@ -18,6 +18,12 @@ from dabmux.pad.base import PADInput
 from dabmux.pad.dls import DLSEncoder
 from dabmux.pad.xpad import XPADEncoder
 from dabmux.pad.input.file_monitor import FileMonitorInput
+
+# EDI support (Priority 5)
+from dabmux.edi.encoder import EdiEncoder
+from dabmux.output.edi import EdiOutput
+from dabmux.output.edi_tcp import EdiTcpOutput
+from dabmux.edi.pft import PFTConfig
 
 logger = structlog.get_logger()
 
@@ -49,6 +55,14 @@ class DabMultiplexer:
         # PAD (Programme Associated Data) encoders and inputs
         self.pad_encoders: Dict[str, XPADEncoder] = {}
         self.pad_inputs: Dict[str, PADInput] = {}
+
+        # EDI encoder and output (Priority 5)
+        self.edi_encoder: Optional[EdiEncoder] = None
+        self.edi_output: Optional[DabOutput] = None
+
+        # Initialize EDI if configured
+        if ensemble.edi_output and ensemble.edi_output.enabled:
+            self._setup_edi_output(ensemble.edi_output)
 
     def add_input(self, subchannel_uid: str, input_source: InputBase) -> None:
         """
@@ -175,6 +189,61 @@ class DabMultiplexer:
                    pad_length=pad_config.length,
                    input_type=pad_config.dls.input_type,
                    input_path=pad_config.dls.input_path)
+
+    def _setup_edi_output(self, config: EdiOutputConfig) -> None:
+        """
+        Setup EDI encoder and output.
+
+        Args:
+            config: EDI output configuration
+        """
+        # Create EDI encoder
+        self.edi_encoder = EdiEncoder(self.ensemble)
+
+        # Parse destination (host:port)
+        parts = config.destination.split(':')
+        host = parts[0]
+        port = int(parts[1]) if len(parts) > 1 else 12000
+
+        # Create EDI output based on protocol
+        if config.protocol == "udp":
+            # Create PFT config if enabled
+            pft_config = None
+            if config.enable_pft:
+                pft_config = PFTConfig(
+                    fec=config.pft_fec > 0,
+                    fec_m=config.pft_fec,
+                    max_fragment_size=config.pft_fragment_size
+                )
+
+            self.edi_output = EdiOutput(
+                dest_addr=host,
+                dest_port=port,
+                source_port=config.source_port,
+                enable_pft=config.enable_pft,
+                pft_config=pft_config
+            )
+
+        elif config.protocol == "tcp":
+            self.edi_output = EdiTcpOutput(
+                mode=config.tcp_mode,
+                host=host,
+                port=port
+            )
+
+        else:
+            raise ValueError(f"Unknown EDI protocol: {config.protocol}")
+
+        # Open the output
+        self.edi_output.open()
+
+        logger.info(
+            "EDI output configured",
+            protocol=config.protocol,
+            destination=config.destination,
+            pft=config.enable_pft if config.protocol == "udp" else None,
+            mode=config.tcp_mode if config.protocol == "tcp" else None
+        )
 
     def generate_frame(self) -> EtiFrame:
         """
@@ -353,6 +422,11 @@ class DabMultiplexer:
         # EOF CRC: XOR with 0xFFFF per ETSI EN 300 799
         mst_crc_data = frame.fic_data + frame.subchannel_data
         frame.eof.crc = crc16(mst_crc_data) ^ 0xFFFF
+
+        # Send to EDI output if configured (Priority 5)
+        if self.edi_encoder and self.edi_output:
+            af_packet = self.edi_encoder.encode_frame(frame)
+            self.edi_output.write(af_packet)
 
         self.frame_count += 1
         return frame

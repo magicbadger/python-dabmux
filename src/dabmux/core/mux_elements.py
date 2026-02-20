@@ -619,6 +619,31 @@ class DabService:
 
 
 @dataclass
+class EdiOutputConfig:
+    """
+    EDI output configuration (Priority 5).
+
+    Configures EDI (Ensemble Data Interface) output for IP-based
+    distribution to transmitters.
+    """
+    enabled: bool = False
+    protocol: str = "udp"  # "udp" or "tcp"
+    destination: str = "127.0.0.1:12000"  # host:port
+
+    # UDP-specific options
+    enable_pft: bool = False  # Enable PFT fragmentation (UDP only)
+    pft_fec: int = 0  # FEC level 0-5 (UDP/PFT only)
+    pft_fragment_size: int = 1400  # Max fragment size in bytes
+
+    # TCP-specific options
+    tcp_mode: str = "client"  # "client" or "server" (TCP only)
+
+    # Common options
+    enable_tist: bool = True  # Include timestamps
+    source_port: int = 0  # Source port (0=auto)
+
+
+@dataclass
 class DabEnsemble:
     """
     Complete DAB ensemble/multiplex.
@@ -647,6 +672,9 @@ class DabEnsemble:
 
     # Service management and navigation (Priority 2)
     other_ensemble_services: List[OtherEnsembleService] = field(default_factory=list)
+
+    # EDI output configuration (Priority 5)
+    edi_output: Optional[EdiOutputConfig] = None
 
     # Collections
     services: List[DabService] = field(default_factory=list)

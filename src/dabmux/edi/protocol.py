@@ -202,6 +202,75 @@ class TagESTn(TagItem):
 
 
 @dataclass
+class TagTIST(TagItem):
+    """
+    tist TAG: Timestamp for transmitter synchronization.
+
+    Per ETSI TS 102 693 Section 5.1.5.2.
+
+    Provides precise timestamp for transmitter synchronization.
+    Format: 56 bits (7 bytes)
+    - Bits 55-24: Seconds since EDI epoch (2000-01-01 00:00:00 UTC)
+    - Bits 23-0: Ticks (1/16384 second resolution, ~61 microseconds)
+    """
+    seconds: int  # Seconds since 2000-01-01 00:00:00 UTC (32-bit)
+    ticks: int    # Sub-second ticks (24-bit, 1/16384 sec)
+
+    def get_name(self) -> bytes:
+        """Get TAG name."""
+        return b"tist"
+
+    def get_value(self) -> bytes:
+        """
+        Assemble tist value (7 bytes).
+
+        Structure: seconds(32 bits) + ticks(24 bits) = 56 bits = 7 bytes
+        """
+        # Pack as 64 bits, then take only 7 bytes (56 bits)
+        value = (self.seconds << 24) | (self.ticks & 0xFFFFFF)
+        return struct.pack('>Q', value)[1:]  # Skip first byte, take 7 bytes
+
+    @staticmethod
+    def from_unix_timestamp(unix_ts: float) -> 'TagTIST':
+        """
+        Create TIST from Unix timestamp.
+
+        Args:
+            unix_ts: Unix timestamp (seconds since 1970-01-01 00:00:00 UTC)
+
+        Returns:
+            TagTIST instance
+        """
+        # Convert to EDI epoch (2000-01-01 00:00:00 UTC)
+        # EDI_EPOCH_UNIX = 946684800 (defined at module level)
+        edi_seconds = int(unix_ts - EDI_EPOCH_UNIX)
+
+        # Extract sub-second ticks (1/16384 sec)
+        subsec = unix_ts - int(unix_ts)
+        ticks = int(subsec * 16384) & 0xFFFFFF
+
+        return TagTIST(seconds=edi_seconds, ticks=ticks)
+
+    @staticmethod
+    def from_eti_tist(eti_tist: int) -> 'TagTIST':
+        """
+        Create TIST from ETI TIST field.
+
+        ETI TIST is in 1/16.384 MHz ticks (same as EDI ticks but different epoch).
+
+        Args:
+            eti_tist: ETI TIST value (32-bit, ticks since frame start)
+
+        Returns:
+            TagTIST instance (approximate conversion)
+        """
+        # ETI TIST is relative ticks, not absolute timestamp
+        # For now, use current time as basis
+        import time
+        return TagTIST.from_unix_timestamp(time.time())
+
+
+@dataclass
 class TagPacket:
     """
     TAG Packet: Collection of TAG items.

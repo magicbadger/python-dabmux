@@ -8,6 +8,7 @@ from dabmux.edi.protocol import (
     TagStarPTR,
     TagDETI,
     TagESTn,
+    TagTIST,
     TagPacket,
     AFPacket
 )
@@ -54,7 +55,10 @@ class EdiEncoder:
         # 2. Add deti TAG (ETI management)
         tag_items.append(self._create_deti_tag(frame))
 
-        # 3. Add estN TAGs (subchannel streams)
+        # 3. Add TIST TAG (timestamp for synchronization)
+        tag_items.append(self._create_tist_tag(frame))
+
+        # 4. Add estN TAGs (subchannel streams)
         for idx, subchannel in enumerate(self.ensemble.subchannels):
             if idx < len(frame.subchannel_data_list):
                 mst_data = frame.subchannel_data_list[idx]
@@ -65,11 +69,11 @@ class EdiEncoder:
                     frame=frame
                 ))
 
-        # 4. Assemble TAG packet
+        # 5. Assemble TAG packet
         tag_packet = TagPacket(tag_items=tag_items, alignment=8)
         tag_payload = tag_packet.assemble()
 
-        # 5. Wrap in AF packet
+        # 6. Wrap in AF packet
         af_packet = AFPacket(
             seq=self._af_seq,
             payload=tag_payload
@@ -102,7 +106,7 @@ class EdiEncoder:
             stat=0xFF,  # No error
             mid=frame.fc.mid,
             fp=frame.fc.fp,
-            mnsc=frame.fc.mnsc,
+            mnsc=frame.eoh.mnsc,  # MNSC is in EOH, not FC
             atstf=has_timestamp,
             ficf=has_fic,
             rfudf=False
@@ -119,6 +123,21 @@ class EdiEncoder:
             tag.fic_data = frame.fic_data
 
         return tag
+
+    def _create_tist_tag(self, frame: EtiFrame) -> TagTIST:
+        """
+        Create TIST TAG for transmitter synchronization.
+
+        Args:
+            frame: ETI frame
+
+        Returns:
+            TagTIST instance with current timestamp
+        """
+        # Generate timestamp from current time
+        # In a real implementation, this should use precise timing (PTP/NTP)
+        import time
+        return TagTIST.from_unix_timestamp(time.time())
 
     def _create_est_tag(
         self,

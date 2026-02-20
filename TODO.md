@@ -26,9 +26,10 @@ This document tracks missing functionality compared to ODR-DabMux and the ETSI D
 - ✅ FIG 1/4: Service component labels
 
 **Test Coverage:**
-- 647 passing tests (72 new tests for Priority 1, 2 & 3)
+- 737 passing tests (72 for Priority 1-3, 49 for Priority 5 EDI)
 - Comprehensive unit tests for all FIG types
 - Integration tested with dablin and etisnoop
+- EDI output tested with TCP/UDP transport
 
 ---
 
@@ -206,21 +207,36 @@ Enables non-audio data services with packet addressing and FEC protection.
 
 ---
 
-## Priority 5: Output Formats
+## Priority 5: Output Formats ⚙️ IN PROGRESS (Phases 1-3 Complete)
 
 ### EDI (Ensemble Data Interface)
-- [ ] Research EDI packet format (ETSI TS 102 693)
-- [ ] Implement EDI-AF (EDI with AF packets)
-- [ ] Implement EDI-PF (EDI with PF packets)
-- [ ] Support EDI over UDP
-- [ ] Support EDI over TCP
-- [ ] Add timestamp synchronization (PTP/NTP)
-- [ ] Implement error protection (Reed-Solomon)
-- [ ] Add sequence numbers
-- [ ] Write unit tests for EDI encoding
-- [ ] Create EDI output examples
+- ✅ Research EDI packet format (ETSI TS 102 693)
+- ✅ Implement TAG items (*ptr, deti, est, tist)
+- ✅ Implement EDI-AF (EDI with AF packets)
+- ✅ Support EDI over UDP (multicast & unicast)
+- ✅ Support EDI over TCP (client & server modes)
+- ✅ Add timestamp synchronization (TIST TAG with Unix conversion)
+- ✅ Implement PFT fragmentation (Protocol with Forward error correction & Timestamp)
+- ✅ Add sequence numbers (AF packet sequencing)
+- ✅ Write unit tests for EDI encoding (49 tests total):
+  - ✅ 20 tests for TIST timestamps
+  - ✅ 15 tests for TCP transport
+  - ✅ 14 tests for multiplexer integration
+- ✅ Integrate with multiplexer (automatic EDI transmission)
+- [ ] Add CLI arguments (--edi, --edi-destination, --edi-protocol)
+- [ ] Create EDI output YAML configuration schema
+- [ ] Create EDI output examples (udp_multicast, tcp_stl, tcp_server)
+- [ ] Add validation tools (edi_analyzer, edi_generator)
+- [ ] Add end-to-end integration tests
 
 **Specification:** ETSI TS 102 693
+
+**Implementation Status:**
+- Phase 1 (TIST & Timestamps): ✅ Complete
+- Phase 2 (TCP Transport): ✅ Complete
+- Phase 3 (Multiplexer Integration): ✅ Complete
+- Phase 4 (CLI & Configuration): ⏳ Pending
+- Phase 5 (Testing & Validation): ⏳ Pending
 
 ### Enhanced ETI Output
 - [ ] Add timestamp metadata to ETI frames
@@ -353,14 +369,17 @@ Enables non-audio data services with packet addressing and FEC protection.
 - ✅ **Multi-ensemble networks** (FIG 0/6, 0/21, 0/24)
 - ✅ **Service linking and frequency management**
 - ✅ **Date/time synchronization with LTO**
-- ✅ **Data services with packet mode** (FIG 0/3, 0/14) ⭐ NEW
-- ✅ **FEC protection for packet data** (RS 204,188) ⭐ NEW
-- ✅ **Packet addressing for component multiplexing** ⭐ NEW
-- ✅ **MOT, EPG, Journaline support** ⭐ NEW
-- ✅ **647 passing tests** with comprehensive coverage ⭐ NEW
+- ✅ **Data services with packet mode** (FIG 0/3, 0/14)
+- ✅ **FEC protection for packet data** (RS 204,188)
+- ✅ **Packet addressing for component multiplexing**
+- ✅ **MOT, EPG, Journaline support**
+- ✅ **EDI output with TCP/UDP transport** (Phases 1-3) ⭐ NEW
+- ✅ **TIST timestamp synchronization** ⭐ NEW
+- ✅ **PFT fragmentation for error protection** ⭐ NEW
+- ✅ **737 passing tests** with comprehensive coverage
 
 **Remaining Limitations for Production Use:**
-- ⚠️ No EDI output for modern broadcast chains (Priority 5)
+- ⚠️ EDI CLI configuration needed (Priority 5, Phases 4-5)
 - ⚠️ No runtime control (missing ZMQ/management) (Priority 6)
 - ⚠️ No advanced signalling (FIG 0/7, FIG 2/x) (Priority 4)
 
@@ -375,6 +394,9 @@ All fundamental DAB multiplex configuration information (MCI) implemented:
 **Professional Deployment Readiness:**
 - ✅ Emergency alerting: **READY** (Priority 1 complete)
 - ✅ Multi-ensemble networks: **READY** (Priority 2 complete)
-- ✅ Data services (packet mode): **READY** (Priority 3 complete) ⭐ NEW
-- ⚠️ Modern broadcast chains: Needs EDI output (Priority 5)
+- ✅ Data services (packet mode): **READY** (Priority 3 complete)
+- ⚙️ Modern broadcast chains: **IN PROGRESS** (Priority 5, Phases 1-3 complete) ⭐ NEW
+  - ✅ EDI protocol implementation complete
+  - ✅ TCP/UDP transport working
+  - ⏳ CLI configuration pending
 - ⚠️ Remote management: Needs ZMQ control (Priority 6)

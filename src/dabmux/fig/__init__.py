@@ -8,6 +8,7 @@ from dabmux.fig.base import FIGBase, FIGRate, FillStatus
 from dabmux.fig.fig0 import (
     FIG0_0, FIG0_1, FIG0_2,
     FIG0_9, FIG0_10, FIG0_18, FIG0_19,
+    FIG0_6, FIG0_21, FIG0_24,
     ANNOUNCEMENT_TYPES
 )
 from dabmux.fig.fig1 import FIG1_0, FIG1_1
@@ -21,10 +22,13 @@ __all__ = [
     'FIG0_0',
     'FIG0_1',
     'FIG0_2',
+    'FIG0_6',
     'FIG0_9',
     'FIG0_10',
     'FIG0_18',
     'FIG0_19',
+    'FIG0_21',
+    'FIG0_24',
     'FIG1_0',
     'FIG1_1',
     'FIGCarousel',

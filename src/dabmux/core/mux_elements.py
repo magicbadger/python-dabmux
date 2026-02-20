@@ -322,6 +322,60 @@ class UserApplication:
 
 
 @dataclass
+class OtherEnsembleService:
+    """Service in another ensemble (FIG 0/24)."""
+    ecc: int = 0              # Extended Country Code
+    ensemble_id: int = 0      # Other ensemble's EId
+    service_id: int = 0       # Service ID in that ensemble
+    ca_id: int = 0            # Conditional Access (0=none)
+    is_32bit_sid: bool = False  # True if 32-bit service ID
+
+
+@dataclass
+class FrequencyEntry:
+    """Single frequency entry (FIG 0/21)."""
+    frequency_mhz: float = 0.0    # Frequency in MHz
+    freq_type: str = 'dab'        # 'dab', 'fm', 'drm', 'amss'
+
+
+@dataclass
+class FrequencyList:
+    """Complete frequency list for a service (FIG 0/21)."""
+    list_id: int = 0              # 0-15
+    continuity: int = 0           # 0-3
+    r_flag: bool = True           # List complete
+    frequencies: List[FrequencyEntry] = field(default_factory=list)
+
+
+@dataclass
+class ServiceLink:
+    """Single service link (FIG 0/6)."""
+    idlq: int = 0                 # 0=DAB, 1=RDS/FM, 2=DRM, 3=AMSS
+    lsn: int = 0                  # Linkage Set Number (12 bits)
+    hard_link: bool = False       # Hard vs soft linking
+    ils: bool = False             # International linkage set
+
+    # DAB targets (IdLQ=0)
+    target_ecc: int = 0
+    target_ensemble_id: int = 0
+    target_service_id: int = 0
+
+    # RDS/FM targets (IdLQ=1)
+    rds_pi_code: int = 0          # RDS Programme Identification
+    fm_frequency_mhz: float = 0.0 # FM frequency
+
+    # DRM/AMSS targets (IdLQ=2/3)
+    drm_service_id: int = 0
+
+
+@dataclass
+class ServiceLinkage:
+    """Service linkage configuration (FIG 0/6)."""
+    enabled: bool = False
+    links: List[ServiceLink] = field(default_factory=list)
+
+
+@dataclass
 class DabAudioComponent:
     """Audio component data."""
     ua_types: List[UserApplication] = field(default_factory=list)
@@ -434,6 +488,8 @@ class DabService:
     asu: int = 0  # Announcement support flags (16-bit)
     clusters: List[int] = field(default_factory=list)
     announcements: AnnouncementConfig = field(default_factory=AnnouncementConfig)
+    frequency_lists: List[FrequencyList] = field(default_factory=list)
+    linkage: Optional[ServiceLinkage] = None
 
     def validate(self) -> bool:
         """Validate service configuration."""
@@ -463,6 +519,9 @@ class DabEnsemble:
     # Date/time and announcements
     datetime: DateTimeConfig = field(default_factory=DateTimeConfig)
     active_announcements: List[ActiveAnnouncement] = field(default_factory=list)
+
+    # Service management and navigation (Priority 2)
+    other_ensemble_services: List[OtherEnsembleService] = field(default_factory=list)
 
     # Collections
     services: List[DabService] = field(default_factory=list)

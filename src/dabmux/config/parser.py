@@ -18,6 +18,11 @@ from dabmux.core.mux_elements import (
     PtySettings,
     DateTimeConfig,
     AnnouncementConfig,
+    OtherEnsembleService,
+    FrequencyEntry,
+    FrequencyList,
+    ServiceLink,
+    ServiceLinkage,
     SubchannelType,
     TransmissionMode
 )
@@ -123,6 +128,30 @@ class ConfigParser:
             international_table=ensemble_config.get('international_table', 1),
             datetime=datetime_config
         )
+
+        # Parse other ensemble services (FIG 0/24)
+        if 'other_ensemble_services' in ensemble_config:
+            for oe_svc_dict in ensemble_config['other_ensemble_services']:
+                oe_ecc = oe_svc_dict.get('ecc', 0)
+                if isinstance(oe_ecc, str):
+                    oe_ecc = int(oe_ecc, 16) if oe_ecc.startswith('0x') else int(oe_ecc)
+
+                oe_ens_id = oe_svc_dict.get('ensemble_id', 0)
+                if isinstance(oe_ens_id, str):
+                    oe_ens_id = int(oe_ens_id, 16) if oe_ens_id.startswith('0x') else int(oe_ens_id)
+
+                oe_svc_id = oe_svc_dict.get('service_id', 0)
+                if isinstance(oe_svc_id, str):
+                    oe_svc_id = int(oe_svc_id, 16) if oe_svc_id.startswith('0x') else int(oe_svc_id)
+
+                oe_svc = OtherEnsembleService(
+                    ecc=oe_ecc,
+                    ensemble_id=oe_ens_id,
+                    service_id=oe_svc_id,
+                    ca_id=oe_svc_dict.get('ca_id', 0),
+                    is_32bit_sid=(oe_svc_id >= 0x10000)
+                )
+                ensemble.other_ensemble_services.append(oe_svc)
 
         # Parse subchannels
         if 'subchannels' in config:
@@ -391,6 +420,84 @@ class ConfigParser:
         if 'announcements' in svc_config:
             clusters = svc_config['announcements'].get('clusters', clusters)
 
+        # Parse frequency lists (FIG 0/21)
+        frequency_lists = []
+        if 'frequency_lists' in svc_config:
+            for fl_dict in svc_config['frequency_lists']:
+                freq_list = FrequencyList(
+                    list_id=fl_dict.get('list_id', 0),
+                    continuity=fl_dict.get('continuity', 0),
+                    r_flag=fl_dict.get('r_flag', True)
+                )
+                for freq_dict in fl_dict.get('frequencies', []):
+                    freq_entry = FrequencyEntry(
+                        frequency_mhz=freq_dict.get('frequency', 0.0),
+                        freq_type=freq_dict.get('type', 'dab')
+                    )
+                    freq_list.frequencies.append(freq_entry)
+                frequency_lists.append(freq_list)
+
+        # Parse service linkage (FIG 0/6)
+        linkage = None
+        if 'linkage' in svc_config:
+            link_dict = svc_config['linkage']
+            linkage = ServiceLinkage(enabled=link_dict.get('enabled', False))
+
+            for link in link_dict.get('links', []):
+                link_type = link.get('type', 'dab').lower()
+
+                # Map type to IdLQ
+                idlq_map = {'dab': 0, 'rds': 1, 'fm': 1, 'drm': 2, 'amss': 3}
+                idlq = idlq_map.get(link_type, 0)
+
+                svc_link = ServiceLink(
+                    idlq=idlq,
+                    lsn=link.get('lsn', 0),
+                    hard_link=link.get('hard_link', False),
+                    ils=link.get('ils', False)
+                )
+
+                # Parse type-specific fields
+                if idlq == 0:  # DAB
+                    target_ecc = link.get('target_ecc', 0)
+                    if isinstance(target_ecc, str):
+                        target_ecc = int(target_ecc, 16) if target_ecc.startswith('0x') else int(target_ecc)
+
+                    target_ens = link.get('target_ensemble', 0)
+                    if isinstance(target_ens, str):
+                        target_ens = int(target_ens, 16) if target_ens.startswith('0x') else int(target_ens)
+
+                    target_svc = link.get('target_service', 0)
+                    if isinstance(target_svc, str):
+                        target_svc = int(target_svc, 16) if target_svc.startswith('0x') else int(target_svc)
+
+                    svc_link.target_ecc = target_ecc
+                    svc_link.target_ensemble_id = target_ens
+                    svc_link.target_service_id = target_svc
+
+                elif idlq == 1:  # RDS/FM
+                    if 'rds_pi_code' in link:
+                        rds_pi = link['rds_pi_code']
+                        if isinstance(rds_pi, str):
+                            rds_pi = int(rds_pi, 16) if rds_pi.startswith('0x') else int(rds_pi)
+                        svc_link.rds_pi_code = rds_pi
+                    if 'fm_frequency' in link:
+                        svc_link.fm_frequency_mhz = link['fm_frequency']
+
+                elif idlq == 2:  # DRM
+                    drm_sid = link.get('drm_service_id', 0)
+                    if isinstance(drm_sid, str):
+                        drm_sid = int(drm_sid, 16) if drm_sid.startswith('0x') else int(drm_sid)
+                    svc_link.drm_service_id = drm_sid
+
+                elif idlq == 3:  # AMSS
+                    amss_sid = link.get('amss_service_id', 0)
+                    if isinstance(amss_sid, str):
+                        amss_sid = int(amss_sid, 16) if amss_sid.startswith('0x') else int(amss_sid)
+                    svc_link.drm_service_id = amss_sid  # Reuse drm_service_id field
+
+                linkage.links.append(svc_link)
+
         return DabService(
             uid=svc_config.get('uid', f"service_{svc_id}"),
             id=svc_id,
@@ -400,7 +507,9 @@ class ConfigParser:
             language=svc_config.get('language', 0),
             asu=svc_config.get('asu', 0),
             clusters=clusters,
-            announcements=ann_config
+            announcements=ann_config,
+            frequency_lists=frequency_lists,
+            linkage=linkage
         )
 
     @staticmethod

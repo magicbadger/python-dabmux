@@ -1,0 +1,246 @@
+---
+# Priority 2 Features Example Configuration
+# Demonstrates FIG 0/6 (Service Linking), FIG 0/21 (Frequency Information),
+# and FIG 0/24 (Other Ensemble Services) for multi-ensemble DAB networks
+
+ensemble:
+  id: '0xCE15'
+  ecc: '0xE1'  # Germany
+  label:
+    text: 'Main Network'
+    short: 'MainNet'
+  transmission_mode: 'I'
+  lto_auto: true
+  international_table: 1
+
+  # FIG 0/9: Date/time with LTO
+  datetime:
+    enabled: true
+    source: 'system'
+    include_lto: true
+    utc_flag: true
+    confidence: true
+
+  # FIG 0/24: Services available in other ensembles
+  # Allows receivers to discover services across multiple ensembles
+  other_ensemble_services:
+    # Regional ensemble in UK
+    - ecc: '0xE2'           # UK
+      ensemble_id: '0x1000'
+      service_id: '0x5001'
+      ca_id: 0
+
+    # International ensemble
+    - ecc: '0xE0'           # International
+      ensemble_id: '0x2000'
+      service_id: '0x6001'
+      ca_id: 0
+
+    # Another German regional ensemble
+    - ecc: '0xE1'           # Germany
+      ensemble_id: '0x4FFF'
+      service_id: '0x7001'
+      ca_id: 0
+
+subchannels:
+  # DAB+ audio subchannel
+  - uid: 'music_channel'
+    id: 0
+    type: 'dabplus'
+    bitrate: 48
+    protection: 'EEP_3A'
+    input_uri: 'file://audio/music_48k.dabp'
+
+  # News channel
+  - uid: 'news_channel'
+    id: 1
+    type: 'dabplus'
+    bitrate: 48
+    protection: 'EEP_3A'
+    input_uri: 'file://audio/news_48k.dabp'
+
+services:
+  # Main music service with full Priority 2 features
+  - uid: 'main_music'
+    id: '0x5001'
+    label:
+      text: 'Music Station'
+      short: 'Music'
+    pty: 10  # Pop music
+    language: 9  # English
+    subchannel: 'music_channel'
+
+    # FIG 0/21: Frequency Information
+    # Provides alternative frequencies for service continuation
+    frequency_lists:
+      # Primary frequency list (service continuation)
+      - list_id: 0
+        continuity: 1  # 1 = Service continuation (recommended handover)
+        r_flag: true   # List complete
+        frequencies:
+          # Primary DAB frequency
+          - frequency: 225.648
+            type: 'dab'
+
+          # Alternative DAB frequency
+          - frequency: 226.352
+            type: 'dab'
+
+          # FM fallback for areas without DAB coverage
+          - frequency: 101.5
+            type: 'fm'
+
+      # Future frequency list (planned migration)
+      - list_id: 1
+        continuity: 2  # 2 = Future frequency (planned change)
+        r_flag: true
+        frequencies:
+          - frequency: 227.360
+            type: 'dab'
+
+    # FIG 0/6: Service Linking
+    # Links this service to related services in other ensembles or on FM
+    linkage:
+      enabled: true
+      links:
+        # Link to same service in regional ensemble (hard link)
+        - type: 'dab'
+          lsn: 100  # Linkage Set Number (groups related links)
+          hard_link: true  # Mandatory handover
+          ils: false  # Not international linkage
+          target_ecc: '0xE1'
+          target_ensemble: '0x4FFF'
+          target_service: '0x5001'
+
+        # Link to FM simulcast (soft link)
+        - type: 'fm'
+          lsn: 100  # Same LSN as above (part of same linkage set)
+          hard_link: false  # Optional handover
+          fm_frequency: 101.5
+
+        # Link to RDS service
+        - type: 'rds'
+          lsn: 100
+          hard_link: false
+          rds_pi_code: '0xC454'
+
+    # FIG 0/18: Announcement Support
+    announcements:
+      enabled: true
+      types:
+        - 'news'
+        - 'weather'
+        - 'traffic'
+      clusters: [1]
+
+  # News service with emergency alerting
+  - uid: 'main_news'
+    id: '0x5002'
+    label:
+      text: 'News Channel'
+      short: 'News'
+    pty: 1  # News
+    language: 9  # English
+    subchannel: 'news_channel'
+
+    # Frequency information for news service
+    frequency_lists:
+      - list_id: 0
+        continuity: 0  # 0 = Same service, different frequency
+        r_flag: true
+        frequencies:
+          - frequency: 225.648
+            type: 'dab'
+          - frequency: 98.5
+            type: 'fm'
+
+    # Service linking to international news services
+    linkage:
+      enabled: true
+      links:
+        # Link to international news ensemble
+        - type: 'dab'
+          lsn: 200
+          hard_link: false
+          ils: true  # International linkage set
+          target_ecc: '0xE0'  # International
+          target_ensemble: '0x2000'
+          target_service: '0x6001'
+
+        # Link to DRM service (for HF reception)
+        - type: 'drm'
+          lsn: 200
+          hard_link: false
+          drm_service_id: '0x12345678'
+
+    # Emergency alerting capability
+    announcements:
+      enabled: true
+      types:
+        - 'alarm'
+        - 'warning'
+        - 'news'
+      new_flag: true
+      clusters: [1, 2]
+
+components:
+  # Components auto-created from service→subchannel links
+  # No manual component configuration needed
+
+# Usage Examples:
+# ===============
+#
+# 1. Generate ETI stream with Priority 2 features:
+#    python -m dabmux.cli -c priority2_service_network.yaml -o network.eti -f raw -n 1000
+#
+# 2. Analyze FICs with etisnoop:
+#    etisnoop -i network.eti | grep "FIG 0/"
+#    Expected output should show: FIG 0/0, 0/1, 0/2, 0/6, 0/9, 0/10, 0/18, 0/21, 0/24
+#
+# 3. Test with dablin player:
+#    dablin -s 0x5001 network.eti
+#
+# Priority 2 Features Demonstrated:
+# =================================
+#
+# FIG 0/6 (Service Linking):
+#   - DAB-to-DAB links (cross-ensemble)
+#   - DAB-to-FM links (simulcast)
+#   - DAB-to-RDS links (programme identification)
+#   - DAB-to-DRM links (international HF)
+#   - Hard vs soft linking
+#   - Linkage Set Numbers (LSN)
+#   - International Linkage Sets (ILS)
+#
+# FIG 0/21 (Frequency Information):
+#   - Multiple frequency lists per service
+#   - DAB frequency encoding (MHz * 16)
+#   - FM frequency encoding ((MHz - 87.5) * 200)
+#   - Continuity flags (same service, continuation, future)
+#   - List completion flags (R flag)
+#   - List IDs (0-15)
+#
+# FIG 0/24 (Other Ensemble Services):
+#   - Cross-ensemble service discovery
+#   - Extended Country Codes (ECC)
+#   - 16-bit and 32-bit service IDs
+#   - Grouped by ensemble
+#
+# Network Architecture:
+# ====================
+#
+# This configuration enables a multi-ensemble DAB network where:
+# - Receivers can discover services across ensembles
+# - Seamless handover between DAB frequencies
+# - Fallback to FM in areas without DAB
+# - International service linking for global coverage
+# - Emergency alert distribution across network
+#
+# Professional Use Cases:
+# ======================
+#
+# 1. Regional Networks: Link services across regional ensembles
+# 2. National Coverage: Provide alternative frequencies for continuous service
+# 3. DAB/FM Hybrid: Smooth transition between DAB and FM
+# 4. International Broadcasting: Link to services in other countries
+# 5. Emergency Services: Coordinate alerts across network

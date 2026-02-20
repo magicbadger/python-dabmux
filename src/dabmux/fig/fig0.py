@@ -1314,3 +1314,577 @@ class FIG0_19(FIGBase):
     def fig_extension(self) -> int:
         """Extension 19."""
         return 19
+
+
+class FIG0_21(FIGBase):
+    """
+    FIG 0/21: Frequency Information.
+
+    Provides frequency lists for service continuation and alternative frequencies.
+    Enables receivers to find the same service on different frequencies.
+
+    Per ETSI EN 300 401 Section 8.1.8.
+    """
+
+    def __init__(self, ensemble: DabEnsemble) -> None:
+        """
+        Initialize FIG 0/21.
+
+        Args:
+            ensemble: Ensemble configuration
+        """
+        super().__init__()
+        self.ensemble = ensemble
+        self.service_index = 0
+        self.list_index = 0  # Track which list within current service
+
+    def fill(self, buf: bytearray, max_size: int) -> FillStatus:
+        """
+        Fill buffer with FIG 0/21 data.
+
+        Variable length per service/list:
+        - Bytes 0-1: Service ID (16 bits)
+        - Byte 2: ListId (4 bits) + R flag + Continuity (2 bits) + spare
+        - Byte 3: Length indicator (number of frequency entries)
+        - Bytes 4+: Frequency entries (2 bytes each)
+
+        Args:
+            buf: Buffer to write into
+            max_size: Maximum bytes available
+
+        Returns:
+            Fill status
+        """
+        status = FillStatus()
+
+        if max_size < 2:
+            return status
+
+        start_pos = 0
+        pos = 2  # Reserve space for header
+
+        # Filter services with frequency lists
+        services_with_freq = [s for s in self.ensemble.services if s.frequency_lists]
+
+        if not services_with_freq:
+            return status
+
+        # Continue from where we left off
+        while self.service_index < len(services_with_freq):
+            service = services_with_freq[self.service_index]
+            freq_lists = service.frequency_lists
+
+            # Process frequency lists for this service
+            while self.list_index < len(freq_lists):
+                freq_list = freq_lists[self.list_index]
+
+                # Calculate size needed
+                num_freqs = len(freq_list.frequencies)
+                entry_size = 4 + (num_freqs * 2)  # SId(2) + header(2) + freqs
+
+                if pos + entry_size > max_size:
+                    # Not enough space, will continue next time
+                    break
+
+                # Bytes 0-1: Service ID (big-endian)
+                struct.pack_into('>H', buf, pos, service.id)
+                pos += 2
+
+                # Byte 2: ListId (4 bits) + R flag + Continuity (2 bits) + spare
+                list_id = freq_list.list_id & 0x0F
+                r_flag = 1 if freq_list.r_flag else 0
+                continuity = freq_list.continuity & 0x03
+
+                buf[pos] = (list_id << 4) | (r_flag << 3) | (continuity << 1)
+                pos += 1
+
+                # Byte 3: Length indicator (number of frequencies)
+                buf[pos] = num_freqs & 0xFF
+                pos += 1
+
+                # Frequency entries (2 bytes each)
+                for freq_entry in freq_list.frequencies:
+                    encoded_freq = self._encode_frequency(freq_entry)
+                    struct.pack_into('>H', buf, pos, encoded_freq)
+                    pos += 2
+
+                self.list_index += 1
+
+            # Check if all lists for this service are done
+            if self.list_index >= len(freq_lists):
+                self.list_index = 0
+                self.service_index += 1
+            else:
+                # Still more lists for this service, but no space
+                break
+
+        bytes_written = pos - 2
+
+        if bytes_written == 0:
+            return status
+
+        # Fill header
+        fig_type = 0
+        length = bytes_written + 1
+        cn = 0
+        oe = 0
+        pd = 0
+        extension = 21
+
+        buf[start_pos] = (fig_type << 5) | (length & 0x1F)
+        buf[start_pos + 1] = (cn << 7) | (oe << 6) | (pd << 5) | (extension & 0x1F)
+
+        status.num_bytes_written = 2 + bytes_written
+
+        # Check if complete
+        if self.service_index >= len(services_with_freq):
+            status.complete_fig_transmitted = True
+            self.service_index = 0
+            self.list_index = 0
+
+        return status
+
+    def _encode_frequency(self, freq_entry: 'FrequencyEntry') -> int:
+        """
+        Encode frequency per ETSI EN 300 401.
+
+        DAB: freq_MHz * 16 (to encode MHz in 62.5 kHz units)
+        FM: (freq_MHz - 87.5) * 200 (to encode in 5 kHz units)
+
+        Args:
+            freq_entry: Frequency entry to encode
+
+        Returns:
+            16-bit encoded frequency
+        """
+        if freq_entry.freq_type.lower() == 'dab':
+            # DAB encoding: MHz * 16 (62.5 kHz resolution)
+            encoded = int(freq_entry.frequency_mhz * 16)
+        elif freq_entry.freq_type.lower() == 'fm':
+            # FM encoding: (MHz - 87.5) * 200 (5 kHz resolution)
+            encoded = int((freq_entry.frequency_mhz - 87.5) * 200)
+        else:
+            # Default to DAB encoding for other types
+            encoded = int(freq_entry.frequency_mhz * 16)
+
+        return encoded & 0xFFFF
+
+    def repetition_rate(self) -> FIGRate:
+        """FIG 0/21 transmitted at rate C (once per 10 seconds)."""
+        return FIGRate.C
+
+    def priority(self) -> FIGPriority:
+        """FIG 0/21 is NORMAL priority."""
+        return FIGPriority.NORMAL
+
+    def fig_type(self) -> int:
+        """FIG type 0."""
+        return 0
+
+    def fig_extension(self) -> int:
+        """Extension 21."""
+        return 21
+
+
+class FIG0_24(FIGBase):
+    """
+    FIG 0/24: Other Ensemble Services.
+
+    Lists services available in other ensembles for cross-ensemble service discovery.
+    Enables receivers to find services across multiple ensembles.
+
+    Per ETSI EN 300 401 Section 8.1.10.3.
+    """
+
+    def __init__(self, ensemble: DabEnsemble) -> None:
+        """
+        Initialize FIG 0/24.
+
+        Args:
+            ensemble: Ensemble configuration
+        """
+        super().__init__()
+        self.ensemble = ensemble
+        self.ensemble_index = 0  # Track which ensemble reference to transmit
+
+    def fill(self, buf: bytearray, max_size: int) -> FillStatus:
+        """
+        Fill buffer with FIG 0/24 data.
+
+        Variable length per ensemble reference:
+        - Byte 0: ECC
+        - Bytes 1-2: Ensemble ID (16 bits, big-endian)
+        - Byte 3: Number of services (5 bits) + CAId flag + Rfa
+        - Bytes 4+: Service entries (2-6 bytes each)
+
+        Per service:
+        - Bytes 0-1 or 0-3: Service ID (16 or 32 bits)
+        - Bytes: CAId (optional, 16 bits)
+
+        Args:
+            buf: Buffer to write into
+            max_size: Maximum bytes available
+
+        Returns:
+            Fill status
+        """
+        status = FillStatus()
+
+        if max_size < 2:
+            return status
+
+        if not self.ensemble.other_ensemble_services:
+            return status
+
+        start_pos = 0
+        pos = 2  # Reserve space for header
+
+        # Group OE services by (ECC, Ensemble ID)
+        grouped = self._group_by_ensemble()
+        ensemble_keys = list(grouped.keys())
+
+        if not ensemble_keys:
+            return status
+
+        # Transmit one ensemble reference per call (iterative)
+        if self.ensemble_index < len(ensemble_keys):
+            key = ensemble_keys[self.ensemble_index]
+            ecc, ens_id = key
+            services = grouped[key]
+
+            # Calculate size needed
+            # Header: 4 bytes (ECC + EnsId + NumServices)
+            # Services: 2 bytes (16-bit SId) or 4 bytes (32-bit SId)
+            # CAId: +2 bytes if present (always use 0 for now)
+            entry_size = 4
+            for svc in services:
+                if svc.is_32bit_sid:
+                    entry_size += 4  # 32-bit SId
+                else:
+                    entry_size += 2  # 16-bit SId
+
+            if pos + entry_size > max_size:
+                # Not enough space
+                return status
+
+            # Byte 0: ECC
+            buf[pos] = ecc & 0xFF
+            pos += 1
+
+            # Bytes 1-2: Ensemble ID (big-endian)
+            struct.pack_into('>H', buf, pos, ens_id)
+            pos += 2
+
+            # Byte 3: Number of services (5 bits) + CAId flag (1) + Rfa (2)
+            num_services = len(services) & 0x1F
+            ca_flag = 0  # No CAId for now (simplified)
+
+            buf[pos] = (num_services << 3) | (ca_flag << 2)
+            pos += 1
+
+            # Service entries
+            for svc in services:
+                if svc.is_32bit_sid:
+                    # 32-bit Service ID (big-endian)
+                    struct.pack_into('>I', buf, pos, svc.service_id)
+                    pos += 4
+                else:
+                    # 16-bit Service ID (big-endian)
+                    struct.pack_into('>H', buf, pos, svc.service_id)
+                    pos += 2
+
+                # Skip CAId for now (ca_flag = 0)
+
+            self.ensemble_index += 1
+
+        bytes_written = pos - 2
+
+        if bytes_written == 0:
+            return status
+
+        # Fill header
+        fig_type = 0
+        length = bytes_written + 1
+        cn = 0
+        oe = 0
+        pd = 0
+        extension = 24
+
+        buf[start_pos] = (fig_type << 5) | (length & 0x1F)
+        buf[start_pos + 1] = (cn << 7) | (oe << 6) | (pd << 5) | (extension & 0x1F)
+
+        status.num_bytes_written = 2 + bytes_written
+
+        # Check if complete
+        if self.ensemble_index >= len(ensemble_keys):
+            status.complete_fig_transmitted = True
+            self.ensemble_index = 0
+
+        return status
+
+    def _group_by_ensemble(self) -> dict:
+        """
+        Group OE services by (ECC, Ensemble ID).
+
+        Returns:
+            Dictionary mapping (ecc, ens_id) -> list of services
+        """
+        from dabmux.core.mux_elements import OtherEnsembleService
+
+        grouped = {}
+        for oe_svc in self.ensemble.other_ensemble_services:
+            key = (oe_svc.ecc, oe_svc.ensemble_id)
+            if key not in grouped:
+                grouped[key] = []
+            grouped[key].append(oe_svc)
+
+        return grouped
+
+    def repetition_rate(self) -> FIGRate:
+        """FIG 0/24 transmitted at rate C (once per 10 seconds)."""
+        return FIGRate.C
+
+    def priority(self) -> FIGPriority:
+        """FIG 0/24 is NORMAL priority."""
+        return FIGPriority.NORMAL
+
+    def fig_type(self) -> int:
+        """FIG type 0."""
+        return 0
+
+    def fig_extension(self) -> int:
+        """Extension 24."""
+        return 24
+
+
+class FIG0_6(FIGBase):
+    """
+    FIG 0/6: Service Linking.
+
+    Links services across ensembles or to FM/RDS/DRM/AMSS services for
+    seamless handover. Supports multiple IdLQ modes for different target types.
+
+    Per ETSI EN 300 401 Section 8.1.15.
+    """
+
+    def __init__(self, ensemble: DabEnsemble) -> None:
+        """
+        Initialize FIG 0/6.
+
+        Args:
+            ensemble: Ensemble configuration
+        """
+        super().__init__()
+        self.ensemble = ensemble
+        self.service_index = 0
+        self.link_index = 0  # Track which link within current service
+
+    def fill(self, buf: bytearray, max_size: int) -> FillStatus:
+        """
+        Fill buffer with FIG 0/6 data.
+
+        Variable length per service/link:
+        - Bytes 0-1: Service ID (16 bits)
+        - Byte 2: IdLQ (2 bits) + LSN high (6 bits)
+        - Byte 3: LSN low (6 bits) + Hard/Soft + ILS
+        - Bytes 4+: Target IDs (variable by IdLQ)
+
+        Args:
+            buf: Buffer to write into
+            max_size: Maximum bytes available
+
+        Returns:
+            Fill status
+        """
+        status = FillStatus()
+
+        if max_size < 2:
+            return status
+
+        start_pos = 0
+        pos = 2  # Reserve space for header
+
+        # Filter services with linkage enabled
+        services_with_links = [s for s in self.ensemble.services
+                              if s.linkage and s.linkage.enabled]
+
+        if not services_with_links:
+            return status
+
+        # Continue from where we left off
+        while self.service_index < len(services_with_links):
+            service = services_with_links[self.service_index]
+            links = service.linkage.links
+
+            # Process links for this service
+            while self.link_index < len(links):
+                link = links[self.link_index]
+
+                # Calculate size needed
+                entry_size = self._calculate_link_size(link)
+
+                if pos + entry_size > max_size:
+                    # Not enough space
+                    break
+
+                # Bytes 0-1: Service ID (big-endian)
+                struct.pack_into('>H', buf, pos, service.id)
+                pos += 2
+
+                # Byte 2: IdLQ (2 bits) + LSN high (6 bits)
+                idlq = link.idlq & 0x03
+                lsn_high = (link.lsn >> 6) & 0x3F
+
+                buf[pos] = (idlq << 6) | lsn_high
+                pos += 1
+
+                # Byte 3: LSN low (6 bits) + Hard/Soft + ILS
+                lsn_low = link.lsn & 0x3F
+                hard = 0 if link.hard_link else 1  # 0=hard, 1=soft
+                ils = 1 if link.ils else 0
+
+                buf[pos] = (lsn_low << 2) | (hard << 1) | ils
+                pos += 1
+
+                # Target IDs (IdLQ-dependent)
+                pos = self._encode_target_ids(buf, pos, link)
+
+                self.link_index += 1
+
+            # Check if all links for this service are done
+            if self.link_index >= len(links):
+                self.link_index = 0
+                self.service_index += 1
+            else:
+                # Still more links, but no space
+                break
+
+        bytes_written = pos - 2
+
+        if bytes_written == 0:
+            return status
+
+        # Fill header
+        fig_type = 0
+        length = bytes_written + 1
+        cn = 0
+        oe = 0
+        pd = 0
+        extension = 6
+
+        buf[start_pos] = (fig_type << 5) | (length & 0x1F)
+        buf[start_pos + 1] = (cn << 7) | (oe << 6) | (pd << 5) | (extension & 0x1F)
+
+        status.num_bytes_written = 2 + bytes_written
+
+        # Check if complete
+        if self.service_index >= len(services_with_links):
+            status.complete_fig_transmitted = True
+            self.service_index = 0
+            self.link_index = 0
+
+        return status
+
+    def _calculate_link_size(self, link: 'ServiceLink') -> int:
+        """
+        Calculate size needed for a link entry.
+
+        Args:
+            link: Service link
+
+        Returns:
+            Size in bytes
+        """
+        # Base: SId(2) + header(2) = 4 bytes
+        size = 4
+
+        # IdLQ-dependent target IDs
+        if link.idlq == 0:  # DAB
+            # ECC(1) + EnsId(2) + SId(2 or 4)
+            size += 3 + (4 if link.target_service_id >= 0x10000 else 2)
+        elif link.idlq == 1:  # RDS/FM
+            # Type(1) + PI/Freq(2)
+            size += 3
+        elif link.idlq == 2:  # DRM
+            # SId(4)
+            size += 4
+        elif link.idlq == 3:  # AMSS
+            # SId(4)
+            size += 4
+
+        return size
+
+    def _encode_target_ids(self, buf: bytearray, pos: int, link: 'ServiceLink') -> int:
+        """
+        Encode target IDs based on IdLQ mode.
+
+        Args:
+            buf: Buffer to write into
+            pos: Current position
+            link: Service link
+
+        Returns:
+            New position
+        """
+        if link.idlq == 0:  # DAB
+            # Byte 0: ECC
+            buf[pos] = link.target_ecc & 0xFF
+            pos += 1
+
+            # Bytes 1-2: Ensemble ID (big-endian)
+            struct.pack_into('>H', buf, pos, link.target_ensemble_id)
+            pos += 2
+
+            # Service ID (16 or 32 bits)
+            if link.target_service_id >= 0x10000:
+                # 32-bit
+                struct.pack_into('>I', buf, pos, link.target_service_id)
+                pos += 4
+            else:
+                # 16-bit
+                struct.pack_into('>H', buf, pos, link.target_service_id)
+                pos += 2
+
+        elif link.idlq == 1:  # RDS/FM
+            if link.rds_pi_code != 0:
+                # RDS: Type(0) + PI code
+                buf[pos] = 0x00  # Type = RDS
+                pos += 1
+                struct.pack_into('>H', buf, pos, link.rds_pi_code)
+                pos += 2
+            else:
+                # FM: Type(1) + Frequency
+                buf[pos] = 0x01  # Type = FM
+                pos += 1
+                # Encode FM frequency: (MHz - 87.5) * 200
+                encoded_freq = int((link.fm_frequency_mhz - 87.5) * 200)
+                struct.pack_into('>H', buf, pos, encoded_freq)
+                pos += 2
+
+        elif link.idlq == 2:  # DRM
+            # 32-bit Service ID
+            struct.pack_into('>I', buf, pos, link.drm_service_id)
+            pos += 4
+
+        elif link.idlq == 3:  # AMSS
+            # 32-bit Service ID
+            struct.pack_into('>I', buf, pos, link.drm_service_id)
+            pos += 4
+
+        return pos
+
+    def repetition_rate(self) -> FIGRate:
+        """FIG 0/6 transmitted at rate C (once per 10 seconds)."""
+        return FIGRate.C
+
+    def priority(self) -> FIGPriority:
+        """FIG 0/6 is HIGH priority (service linking important for networks)."""
+        return FIGPriority.HIGH
+
+    def fig_type(self) -> int:
+        """FIG type 0."""
+        return 0
+
+    def fig_extension(self) -> int:
+        """Extension 6."""
+        return 6

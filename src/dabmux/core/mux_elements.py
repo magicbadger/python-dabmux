@@ -617,6 +617,9 @@ class DabService:
     frequency_lists: List[FrequencyList] = field(default_factory=list)
     linkage: Optional[ServiceLinkage] = None
 
+    # Conditional Access (Priority 7)
+    ca_system: Optional[int] = None  # CAId if service uses CA, None for free-to-air
+
     def validate(self) -> bool:
         """Validate service configuration."""
         return self.label.validate() and self.id > 0
@@ -645,6 +648,17 @@ class EdiOutputConfig:
     # Common options
     enable_tist: bool = True  # Include timestamps
     source_port: int = 0  # Source port (0=auto)
+
+
+@dataclass
+class ConditionalAccessConfig:
+    """
+    Conditional Access configuration (Priority 7).
+
+    Configures CA systems used in the ensemble for encrypted/subscription services.
+    """
+    enabled: bool = False
+    systems: List[int] = field(default_factory=list)  # List of CAId values (16-bit)
 
 
 @dataclass
@@ -708,6 +722,9 @@ class DabEnsemble:
 
     # Remote control configuration (Priority 6)
     remote_control: Optional[RemoteControlConfig] = None
+
+    # Conditional Access configuration (Priority 7)
+    conditional_access: Optional[ConditionalAccessConfig] = None
 
     # ETI output configuration (Priority 5.5 - Enhanced ETI)
     enable_tist: bool = False  # Enable TIST timestamps in ETI frames

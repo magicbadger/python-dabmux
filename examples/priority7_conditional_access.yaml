@@ -1,0 +1,153 @@
+# Priority 7: Conditional Access Example Configuration
+#
+# Demonstrates:
+# - FIG 6/0: CA Organization (declares which CA systems are used)
+# - FIG 6/1: CA Service (indicates which services require CA)
+#
+# This configuration creates a DAB ensemble with both premium (encrypted)
+# and free-to-air services using Conditional Access systems.
+
+ensemble:
+  id: 0xCE15
+  ecc: 0xE1
+  label:
+    text: 'Premium DAB Mix'
+    short_text: 'Premium'
+  transmission_mode: 'I'
+
+  # Conditional Access Configuration (Priority 7)
+  conditional_access:
+    enabled: true
+    systems:
+      - 0x5601  # Nagravision (Kudelski)
+      - 0x4A10  # DigitalRadio CA
+
+  # Date/time signalling
+  datetime:
+    enabled: true
+
+subchannels:
+  # Premium music channel (48 kbps DAB+)
+  - uid: 'audio_premium'
+    id: 0
+    type: 'dabplus'
+    bitrate: 48
+    protection: 'EEP_3A'
+    input_uri: 'file://audio/premium_music.dabp'
+
+  # Free news channel (32 kbps DAB+)
+  - uid: 'audio_news'
+    id: 1
+    type: 'dabplus'
+    bitrate: 32
+    protection: 'EEP_2A'
+    input_uri: 'file://audio/news.dabp'
+
+  # Premium sports channel (48 kbps DAB+)
+  - uid: 'audio_sports'
+    id: 2
+    type: 'dabplus'
+    bitrate: 48
+    protection: 'EEP_3A'
+    input_uri: 'file://audio/sports.dabp'
+
+services:
+  # Premium service requiring Nagravision subscription
+  - uid: 'service_premium_music'
+    id: 0x5001
+    label:
+      text: 'Premium Music'
+      short_text: 'PremiumM'
+    pty: 10  # Pop Music
+    language: 9  # English
+    ca_system: 0x5601  # Nagravision - subscription required
+
+  # Free-to-air news service
+  - uid: 'service_news'
+    id: 0x5002
+    label:
+      text: 'Free News'
+      short_text: 'News'
+    pty: 1  # News
+    language: 9  # English
+    ca_system: null  # Free-to-air (no CA required)
+
+  # Premium sports service requiring DigitalRadio CA
+  - uid: 'service_sports'
+    id: 0x5003
+    label:
+      text: 'Premium Sports'
+      short_text: 'Sports'
+    pty: 4  # Sport
+    language: 9  # English
+    ca_system: 0x4A10  # DigitalRadio CA - subscription required
+
+components:
+  # Premium music component
+  - uid: 'component_premium_music'
+    service_id: '0x5001'
+    subchannel_id: 0
+    label:
+      text: 'Music Channel'
+      short_text: 'Music'
+
+  # Free news component
+  - uid: 'component_news'
+    service_id: '0x5002'
+    subchannel_id: 1
+    label:
+      text: 'News Channel'
+      short_text: 'News'
+
+  # Premium sports component
+  - uid: 'component_sports'
+    service_id: '0x5003'
+    subchannel_id: 2
+    label:
+      text: 'Sports Channel'
+      short_text: 'Sports'
+
+# Technical Notes:
+#
+# FIG 6/0 (CA Organization):
+# - Declares which CA systems are used in the ensemble
+# - In this example: Nagravision (0x5601) and DigitalRadio CA (0x4A10)
+# - Transmitted at Rate C (once per second)
+# - Helps receivers identify what smart cards are needed
+#
+# FIG 6/1 (CA Service):
+# - Indicates which specific services require CA
+# - Links each service to its CA system (CAId)
+# - Services with ca_system=null are free-to-air
+# - Transmitted at Rate C (once per second)
+#
+# Common CA System IDs (CAId):
+#   0x5501 - Viaccess
+#   0x5601 - Nagravision (Kudelski)
+#   0x5901 - VideoGuard
+#   0x4A10 - DigitalRadio CA
+#   0xFFFF - Proprietary/Test systems
+#
+# Important:
+# - This implementation only handles FIG signaling for CA
+# - Actual content encryption must be done externally before multiplexing
+# - CA systems (smart cards, keys, ECM/EMM) are handled by separate CA modules
+# - For testing, content must already be encrypted/scrambled
+#
+# Production Deployment:
+# 1. Integrate with CA system provider (Nagravision, Viaccess, etc.)
+# 2. Encrypt audio/data streams before feeding to multiplexer
+# 3. Inject ECM (Entitlement Control Messages) via data services
+# 4. Manage EMM (Entitlement Management Messages) separately
+# 5. Distribute smart cards to subscribers
+#
+# Testing:
+# - Use DAB receivers with CA capability
+# - Verify FIG 6/0 and 6/1 appear in FIC (use etisnoop)
+# - Verify free-to-air services work without smart card
+# - Verify encrypted services require valid smart card
+#
+# Standards Compliance:
+# - ETSI EN 300 401 Section 11.2.1 (FIG 6/0)
+# - ETSI EN 300 401 Section 11.2.2 (FIG 6/1)
+# - DVB Project CA system ID registry

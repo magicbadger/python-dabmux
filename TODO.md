@@ -11,7 +11,7 @@ This document tracks missing functionality compared to ODR-DabMux and the ETSI D
 - ✅ FIG 0/3: Service component in packet mode (Priority 3)
 - ✅ FIG 0/5: Service component language
 - ✅ FIG 0/6: Service linking (Priority 2)
-- ✅ FIG 0/7: Configuration information (Priority 4) ⭐ NEW
+- ✅ FIG 0/7: Configuration information (Priority 4)
 - ✅ FIG 0/8: Service component global definition
 - ✅ FIG 0/9: Extended Country Code & LTO (Priority 1)
 - ✅ FIG 0/10: Date and Time (Priority 1)
@@ -25,15 +25,18 @@ This document tracks missing functionality compared to ODR-DabMux and the ETSI D
 - ✅ FIG 1/0: Ensemble label
 - ✅ FIG 1/1: Service labels
 - ✅ FIG 1/4: Service component labels
-- ✅ FIG 2/1: Service component dynamic label (Priority 4) ⭐ NEW
+- ✅ FIG 2/1: Service component dynamic label (Priority 4)
+- ✅ FIG 6/0: CA organization (Priority 7) ⭐ NEW
+- ✅ FIG 6/1: CA service (Priority 7) ⭐ NEW
 
 **Test Coverage:**
-- **985 passing tests** (excluding 4 pre-existing UDP failures)
+- **1010 passing tests** (excluding 4 pre-existing UDP failures)
   - Priority 1-3: 72 tests (Emergency Alerting, Service Management, Data Services)
   - Priority 4: 41 tests (FIG 0/7, FIG 2/1 Dynamic Labels)
   - Priority 5: 61 tests (EDI output)
   - Priority 5.5: 37 tests (Enhanced ETI)
   - Priority 6: 58 tests (Remote Control & Management - all 4 phases)
+  - Priority 7: 25 tests (FIG 6/0, 6/1 Conditional Access) ⭐ NEW
 - 73% overall code coverage
 - Comprehensive unit tests for all FIG types
 - Integration tested with dablin and etisnoop
@@ -373,15 +376,43 @@ Enables runtime control and monitoring of the multiplexer via ZeroMQ JSON API an
 
 ---
 
-## Priority 7: Conditional Access & Security
+## Priority 7: Conditional Access & Security ✅ COMPLETED
 
-### FIG 6 - Conditional Access
-- [ ] Research CA requirements
-- [ ] Implement FIG 6/0 (CA organization)
-- [ ] Implement FIG 6/1 (CA service)
-- [ ] Support CA system identification
-- [ ] Add CA configuration schema
-- [ ] Write unit tests for FIG 6/x
+Enables Conditional Access signaling for subscription-based DAB services.
+
+### FIG 6/0 - CA Organization ✅
+- ✅ Research CA requirements and CAId registry
+- ✅ Implement FIG 6/0 encoding
+- ✅ Support multiple CA systems (Nagravision, Viaccess, DigitalRadio CA, etc.)
+- ✅ CAId encoding (16-bit)
+- ✅ Conditional registration (only when CA enabled)
+- ✅ Write unit tests for FIG 6/0 (11 tests)
+
+### FIG 6/1 - CA Service ✅
+- ✅ Implement FIG 6/1 encoding
+- ✅ Support CA system identification per service
+- ✅ Support 16-bit SId (programme services)
+- ✅ Support 32-bit SId (data services)
+- ✅ PD flag handling for SId size
+- ✅ Iterative transmission for multiple services
+- ✅ Free-to-air service filtering
+- ✅ Write unit tests for FIG 6/1 (14 tests)
+
+### Configuration Schema ✅
+- ✅ Add ConditionalAccessConfig dataclass
+- ✅ Add ca_system field to DabService (per-service CA)
+- ✅ Add conditional_access field to DabEnsemble
+- ✅ YAML configuration support
+- ✅ Create example configuration
+
+**Implementation:**
+- `src/dabmux/fig/fig6.py` - FIG 6/0 and 6/1 (234 LOC)
+- `tests/unit/test_fig6.py` - 25 tests (529 LOC)
+- `examples/priority7_conditional_access.yaml` - Example config
+
+**Coverage:** 97% on fig6.py module
+
+**Note:** This implementation provides FIG signaling only. Actual content encryption, ECM/EMM, and smart card integration are handled by external CA systems (Nagravision, Viaccess, etc.).
 
 **Specification:** ETSI EN 300 401 Section 11
 

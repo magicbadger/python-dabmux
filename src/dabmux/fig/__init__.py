@@ -13,6 +13,7 @@ from dabmux.fig.fig0 import (
 )
 from dabmux.fig.fig1 import FIG1_0, FIG1_1
 from dabmux.fig.fig2 import FIG2_1
+from dabmux.fig.fig6 import FIG6_0, FIG6_1
 from dabmux.fig.carousel import FIGCarousel
 from dabmux.fig.fic import FICEncoder
 
@@ -37,6 +38,8 @@ __all__ = [
     'FIG1_0',
     'FIG1_1',
     'FIG2_1',
+    'FIG6_0',
+    'FIG6_1',
     'FIGCarousel',
     'FICEncoder',
     'ANNOUNCEMENT_TYPES',

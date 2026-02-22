@@ -11,6 +11,7 @@ from dabmux.core.mux_elements import DabEnsemble, TransmissionMode
 from dabmux.fig.fig0 import FIG0_0, FIG0_1, FIG0_2, FIG0_3, FIG0_7, FIG0_9, FIG0_10, FIG0_13, FIG0_14, FIG0_18, FIG0_19, FIG0_6, FIG0_21, FIG0_24
 from dabmux.fig.fig1 import FIG1_0, FIG1_1
 from dabmux.fig.fig2 import FIG2_1
+from dabmux.fig.fig6 import FIG6_0, FIG6_1
 from dabmux.utils.crc import crc16
 
 logger = structlog.get_logger()
@@ -89,6 +90,16 @@ class FICEncoder:
         if any(c.dynamic_label and c.dynamic_label.text for c in self.ensemble.components):
             fig2_1 = FIG2_1(self.ensemble)
             self.carousel.add_fig(fig2_1)
+
+        # FIG 6/0: CA Organization (Priority 7 - if CA enabled)
+        if self.ensemble.conditional_access and self.ensemble.conditional_access.enabled:
+            fig6_0 = FIG6_0(self.ensemble)
+            self.carousel.add_fig(fig6_0)
+
+            # FIG 6/1: CA Service (if any services use CA)
+            if any(s.ca_system is not None for s in self.ensemble.services):
+                fig6_1 = FIG6_1(self.ensemble)
+                self.carousel.add_fig(fig6_1)
 
         # FIG 0/9: Extended Country Code (if ECC is set and services exist)
         if self.ensemble.services and self.ensemble.ecc != 0:

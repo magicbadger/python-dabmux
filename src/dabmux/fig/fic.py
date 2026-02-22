@@ -8,7 +8,7 @@ of 30 bytes each, plus padding.
 import structlog
 from dabmux.fig.carousel import FIGCarousel
 from dabmux.core.mux_elements import DabEnsemble, TransmissionMode
-from dabmux.fig.fig0 import FIG0_0, FIG0_1, FIG0_2, FIG0_3, FIG0_7, FIG0_9, FIG0_10, FIG0_14, FIG0_18, FIG0_19, FIG0_6, FIG0_21, FIG0_24
+from dabmux.fig.fig0 import FIG0_0, FIG0_1, FIG0_2, FIG0_3, FIG0_7, FIG0_9, FIG0_10, FIG0_13, FIG0_14, FIG0_18, FIG0_19, FIG0_6, FIG0_21, FIG0_24
 from dabmux.fig.fig1 import FIG1_0, FIG1_1
 from dabmux.fig.fig2 import FIG2_1
 from dabmux.utils.crc import crc16
@@ -65,6 +65,11 @@ class FICEncoder:
         if any(c.is_packet_mode for c in self.ensemble.components):
             fig0_3 = FIG0_3(self.ensemble)
             self.carousel.add_fig(fig0_3)
+
+        # FIG 0/13: User Application Information (if any component has MOT carousel)
+        if any(c.carousel_enabled for c in self.ensemble.components):
+            fig0_13 = FIG0_13(self.ensemble)
+            self.carousel.add_fig(fig0_13)
 
         # FIG 0/7: Configuration Information (always enabled for v2 compliance)
         fig0_7 = FIG0_7(self.ensemble)

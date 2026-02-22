@@ -538,6 +538,10 @@ class DabComponent:
     # Dynamic label (Priority 4 - FIG 2/1)
     dynamic_label: Optional[DynamicLabel] = None
 
+    # MOT Carousel (Phase 6)
+    carousel_enabled: bool = False
+    carousel_directory: Optional[str] = None
+
     def validate(self) -> bool:
         """Validate component configuration."""
         return self.label.validate()
@@ -644,6 +648,32 @@ class EdiOutputConfig:
 
 
 @dataclass
+class RemoteControlConfig:
+    """
+    Remote control configuration (Priority 6 - Phase 4).
+
+    Configures ZMQ and Telnet interfaces, authentication, and audit logging.
+    """
+    # ZMQ configuration
+    zmq_enabled: bool = False
+    zmq_bind: str = "tcp://*:9000"
+
+    # Telnet configuration
+    telnet_enabled: bool = False
+    telnet_bind: str = "0.0.0.0"
+    telnet_port: int = 9001
+
+    # Authentication (Phase 4)
+    auth_enabled: bool = False
+    auth_password: Optional[str] = None  # Plain text (hashed in memory)
+    auth_password_hash: Optional[str] = None  # Pre-hashed SHA-256
+
+    # Audit logging (Phase 4)
+    audit_enabled: bool = False
+    audit_log_file: Optional[str] = None
+
+
+@dataclass
 class DabEnsemble:
     """
     Complete DAB ensemble/multiplex.
@@ -675,6 +705,13 @@ class DabEnsemble:
 
     # EDI output configuration (Priority 5)
     edi_output: Optional[EdiOutputConfig] = None
+
+    # Remote control configuration (Priority 6)
+    remote_control: Optional[RemoteControlConfig] = None
+
+    # ETI output configuration (Priority 5.5 - Enhanced ETI)
+    enable_tist: bool = False  # Enable TIST timestamps in ETI frames
+    tist_offset: float = 0.0   # TIST offset in seconds (for delay compensation)
 
     # Collections
     services: List[DabService] = field(default_factory=list)

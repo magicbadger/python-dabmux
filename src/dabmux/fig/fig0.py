@@ -881,41 +881,154 @@ class FIG0_8(FIGBase):
 
 class FIG0_13(FIGBase):
     """
-    FIG 0/13: User application information.
+    FIG 0/13: User Application Information.
 
-    Provides information about applications associated with services.
+    Signals user applications (e.g., MOT slideshow, EPG) associated with service components.
+    Per ETSI EN 300 401 Section 8.1.20.
+
+    Byte Structure:
+    - SId (16 or 32 bits): Service Identifier
+    - SCIdS (4 bits): Service Component ID within service
+    - No (4 bits): Number of user applications (1 for MOT)
+    - User Application Type (11 bits): 0x001 for MOT, 0x002 for MOT Slideshow
+    - CA flag (1 bit): Conditional Access flag
+    - CA Organization (4 bits): CA system
+    - User Application Data Length (5 bits): Length of following data
+    - User Application Data (variable): Transport mechanism, etc.
+
+    MOT User Application Types:
+    - 0x001: MOT (general)
+    - 0x002: MOT Slideshow / Broadcast Website
+    - 0x003: MOT Electronic Programme Guide (EPG)
     """
+
+    # User application types
+    UA_TYPE_MOT = 0x001
+    UA_TYPE_MOT_SLIDESHOW = 0x002
+    UA_TYPE_MOT_EPG = 0x003
 
     def __init__(self, ensemble: DabEnsemble) -> None:
         """Initialize FIG 0/13."""
         super().__init__()
         self.ensemble = ensemble
 
-    def fill(self, buf: bytearray, max_size: int) -> int:
+    def fill(self, buf: bytearray, max_size: int) -> FillStatus:
         """
         Fill FIG 0/13 data.
 
-        Format:
-        - SId (16 or 32 bits): Service Identifier
-        - SCIdS (4 bits): Service Component Identifier within Service
-        - No (4 bits): Number of user applications
-        - For each application:
-          - User application type (11 bits)
-          - User application data length (5 bits)
-          - User application data (variable)
+        Signals MOT availability for components with carousel_enabled flag.
+
+        Returns:
+            FillStatus with bytes written
         """
-        start_size = len(buf)
-        remaining = max_size
+        status = FillStatus()
 
-        # FIG 0/13 is complex and application-specific
-        # For basic implementation, we'll skip it or provide minimal data
-        # This is typically used for multimedia services and advanced features
+        # Find components with MOT carousel enabled
+        mot_components = [
+            (component, service)
+            for service in self.ensemble.services
+            for component in self.ensemble.components
+            if component.service_id == service.id and hasattr(component, 'carousel_enabled') and component.carousel_enabled
+        ]
 
-        return len(buf) - start_size
+        if not mot_components:
+            status.complete_fig_transmitted = True
+            return status
+
+        for component, service in mot_components:
+            # Calculate size needed
+            # Service ID (2 or 4 bytes) + SCIdS/No (1 byte) + UA entry (3 bytes minimum)
+            sid_size = 2 if service.id < 0x10000 else 4
+            entry_size = sid_size + 1 + 3  # Minimum for one UA
+
+            if status.num_bytes_written + entry_size > max_size:
+                break
+
+            # Service ID
+            if service.id < 0x10000:
+                # 16-bit SId
+                buf[status.num_bytes_written] = (service.id >> 8) & 0xFF
+                buf[status.num_bytes_written + 1] = service.id & 0xFF
+                status.num_bytes_written += 2
+            else:
+                # 32-bit SId
+                buf[status.num_bytes_written] = (service.id >> 24) & 0xFF
+                buf[status.num_bytes_written + 1] = (service.id >> 16) & 0xFF
+                buf[status.num_bytes_written + 2] = (service.id >> 8) & 0xFF
+                buf[status.num_bytes_written + 3] = service.id & 0xFF
+                status.num_bytes_written += 4
+
+            # SCIdS (4 bits) + No (4 bits)
+            # SCIdS is component's SCId, No = 1 (one user application: MOT)
+            scids = self._get_scids(component, service)
+            buf[status.num_bytes_written] = (scids << 4) | 0x01
+            status.num_bytes_written += 1
+
+            # User Application entry
+            # Byte 1: UA Type high (3 bits) + CA flag (1 bit) + CA Organization (4 bits)
+            # Byte 2: UA Type low (8 bits)
+            # Byte 3: UA Data Length (5 bits) + UA Data start (3 bits)
+
+            ua_type = self.UA_TYPE_MOT_SLIDESHOW  # Use MOT Slideshow type
+            ca_flag = 0  # No conditional access
+            ca_org = 0  # No CA organization
+
+            # UA Type is 11 bits, split across two bytes
+            ua_type_high = (ua_type >> 8) & 0x07  # Top 3 bits
+            ua_type_low = ua_type & 0xFF  # Bottom 8 bits
+
+            buf[status.num_bytes_written] = (ua_type_high << 5) | (ca_flag << 4) | (ca_org & 0x0F)
+            buf[status.num_bytes_written + 1] = ua_type_low
+
+            # UA Data Length (5 bits) + Transport mechanism (variable)
+            # For MOT via MSC packet mode, data length = 1 byte
+            # Data byte indicates packet mode transport
+            ua_data_length = 1
+
+            buf[status.num_bytes_written + 2] = (ua_data_length & 0x1F) << 3
+            status.num_bytes_written += 3
+
+            # UA Data: Transport mechanism
+            # For MSC packet mode: 0x00 (packet mode)
+            if status.num_bytes_written + ua_data_length <= max_size:
+                buf[status.num_bytes_written] = 0x00  # Packet mode
+                status.num_bytes_written += ua_data_length
+
+        if not mot_components or status.num_bytes_written > 0:
+            status.complete_fig_transmitted = True
+
+        return status
+
+    def _get_scids(self, component, service) -> int:
+        """
+        Get SCIdS (Service Component Identifier within Service) for component.
+
+        Args:
+            component: DabComponent
+            service: DabService
+
+        Returns:
+            SCIdS value (0-15)
+        """
+        # Find component index within service
+        service_components = [
+            c for c in self.ensemble.components
+            if c.service_id == service.id
+        ]
+
+        for idx, comp in enumerate(service_components):
+            if comp == component:
+                return idx & 0x0F
+
+        return 0
 
     def repetition_rate(self) -> FIGRate:
-        """FIG 0/13 transmitted at rate C."""
+        """FIG 0/13 transmitted at rate C (once every 3 seconds)."""
         return FIGRate.C
+
+    def priority(self) -> FIGPriority:
+        """FIG 0/13 is NORMAL priority."""
+        return FIGPriority.NORMAL
 
     def fig_type(self) -> int:
         """FIG type 0."""

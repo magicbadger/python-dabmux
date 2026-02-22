@@ -158,6 +158,20 @@ Examples:
             help='TIST offset in milliseconds (default: 0)'
         )
 
+        # Remote control
+        parser.add_argument(
+            '--zmq',
+            type=str,
+            metavar='BIND',
+            help='Enable ZeroMQ server (format: tcp://*:9000)'
+        )
+        parser.add_argument(
+            '--telnet',
+            type=str,
+            metavar='BIND',
+            help='Enable telnet server (format: address:port, e.g., 0.0.0.0:9001)'
+        )
+
         # Verbosity
         parser.add_argument(
             '-v', '--verbose',
@@ -366,11 +380,35 @@ Examples:
             # Configure EDI output from CLI arguments
             self.configure_edi_output(parsed_args, ensemble)
 
+            # Apply TIST settings to ensemble (Priority 5.5 - Enhanced ETI)
+            if parsed_args.tist:
+                ensemble.enable_tist = True
+                # Convert offset from milliseconds to seconds
+                ensemble.tist_offset = parsed_args.tist_offset / 1000.0
+                logger.info("TIST enabled", offset_ms=parsed_args.tist_offset)
+
             # Create multiplexer (will auto-setup EDI if configured)
             self.mux = DabMultiplexer(ensemble)
 
             # Create and add input sources
             self.create_inputs()
+
+            # Setup MOT carousels (Phase 6)
+            self.mux.setup_carousels()
+
+            # Start remote control servers if requested
+            if parsed_args.zmq:
+                self.mux.start_zmq_server(parsed_args.zmq)
+
+            if parsed_args.telnet:
+                # Parse address:port
+                if ':' in parsed_args.telnet:
+                    address, port_str = parsed_args.telnet.rsplit(':', 1)
+                    port = int(port_str)
+                else:
+                    address = parsed_args.telnet
+                    port = 9001
+                self.mux.start_telnet_server(address, port)
 
             # Create file output if requested
             file_output = self.create_file_output(parsed_args)

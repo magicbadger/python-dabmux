@@ -7,7 +7,7 @@ which carries multiplex configuration information to receivers.
 from dabmux.fig.base import FIGBase, FIGRate, FillStatus
 from dabmux.fig.fig0 import (
     FIG0_0, FIG0_1, FIG0_2, FIG0_3, FIG0_7,
-    FIG0_9, FIG0_10, FIG0_14, FIG0_18, FIG0_19,
+    FIG0_9, FIG0_10, FIG0_13, FIG0_14, FIG0_18, FIG0_19,
     FIG0_6, FIG0_21, FIG0_24,
     ANNOUNCEMENT_TYPES
 )
@@ -28,6 +28,7 @@ __all__ = [
     'FIG0_7',
     'FIG0_9',
     'FIG0_10',
+    'FIG0_13',
     'FIG0_14',
     'FIG0_18',
     'FIG0_19',

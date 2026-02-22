@@ -1,0 +1,54 @@
+ensemble:
+  id: '0xCE15'
+  ecc: '0xE1'
+  label:
+    text: 'MOT Demo'
+    short: 'MOT'
+  transmission_mode: 'I'
+
+subchannels:
+  # Audio subchannel
+  - uid: 'audio_ch'
+    id: 0
+    type: 'dabplus'
+    bitrate: 48
+    protection: 'EEP_3A'
+    input_uri: 'file://audio/example.dabp'
+
+  # MOT data subchannel (packet mode)
+  - uid: 'mot_ch'
+    id: 1
+    type: 'packet'
+    bitrate: 96  # 96 kbps for MOT data
+    protection: 'EEP_3A'
+    start_address: 0  # Will be calculated automatically
+
+services:
+  - uid: 'radio_service'
+    id: '0x5001'
+    label:
+      text: 'Example Radio'
+      short: 'ExRadio'
+    pty: 10  # Pop music
+    language: 9  # English
+
+components:
+  # Audio component
+  - uid: 'audio_component'
+    service_id: '0x5001'
+    subchannel_id: 0
+    label:
+      text: 'Main Programme'
+      short: 'Main'
+
+  # MOT carousel component
+  - uid: 'mot_component'
+    service_id: '0x5001'
+    subchannel_id: 1
+    label:
+      text: 'Slideshow'
+      short: 'Slides'
+    carousel:
+      enabled: true
+      directory: '/path/to/carousel'  # Directory containing MOT objects
+      # Optional: address and max_packet_size are auto-calculated from subchannel

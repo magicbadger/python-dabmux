@@ -564,6 +564,12 @@ class ConfigParser:
                 )
                 component.packet.ua_types.append(ua)
 
+        # Parse MOT carousel configuration
+        if 'carousel' in comp_config:
+            carousel_config = comp_config['carousel']
+            component.carousel_enabled = carousel_config.get('enabled', False)
+            component.carousel_directory = carousel_config.get('directory', None)
+
         return component
 
 

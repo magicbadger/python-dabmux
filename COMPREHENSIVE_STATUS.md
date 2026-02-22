@@ -1,7 +1,7 @@
 # Python DAB Multiplexer - Comprehensive Status Report
 
 **Date:** 2026-02-22
-**Version:** Phase 6 Complete
+**Version:** Phase 7 Complete
 **Status:** 🟢 Production Ready
 
 ---
@@ -9,14 +9,15 @@
 ## Executive Summary
 
 The Python DAB Multiplexer is now **feature-complete** for professional DAB/DAB+ broadcasting with:
-- ✅ **All core FIG signaling** (20 FIG types implemented)
+- ✅ **All core FIG signaling** (22 FIG types implemented)
 - ✅ **Advanced signaling** (FIG 0/7 configuration info, FIG 2/1 dynamic labels)
+- ✅ **Conditional Access** (FIG 6/0, 6/1 for subscription services)
 - ✅ **Emergency alerting** (FIG 0/18, 0/19)
 - ✅ **Data services** (Packet mode, MOT, EPG)
 - ✅ **EDI output** (ETSI TS 102 693 compliant)
 - ✅ **Remote control** (ZeroMQ + Telnet with authentication)
-- ✅ **985 passing tests** (73% code coverage)
-- ✅ **19,525 lines of source code**
+- ✅ **1010 passing tests** (73% code coverage)
+- ✅ **19,700+ lines of source code**
 
 ---
 
@@ -155,6 +156,47 @@ components:
 
 ---
 
+### ✅ Priority 7: Conditional Access & Security (COMPLETE)
+**Status:** Production ready
+**Tests:** 25 tests
+**Features:**
+
+#### FIG 6/0: CA Organization
+- Declares which CA systems are used in ensemble
+- 16-bit CAId encoding (Nagravision, Viaccess, VideoGuard, etc.)
+- Rate C transmission
+- 11 tests
+
+#### FIG 6/1: CA Service
+- Indicates which services require subscriptions
+- Per-service CA system assignment
+- Supports 16-bit and 32-bit service IDs
+- Iterative transmission for multiple services
+- 14 tests
+
+**Configuration:**
+```yaml
+ensemble:
+  conditional_access:
+    enabled: true
+    systems:
+      - 0x5601  # Nagravision
+      - 0x4A10  # DigitalRadio CA
+
+services:
+  - id: 0x5001
+    ca_system: 0x5601  # Premium service
+  - id: 0x5002
+    ca_system: null     # Free-to-air
+```
+
+**Important:** Provides FIG signaling only. Actual encryption, ECM/EMM, and smart card integration handled by external CA systems.
+
+**Standards:** ETSI EN 300 401 Section 11
+**Verification:** Tested with etisnoop
+
+---
+
 ### ✅ Priority 6: Remote Control & Management (COMPLETE)
 **Status:** Production ready with security
 **Tests:** 58 tests across 4 phases
@@ -240,16 +282,20 @@ ensemble:
 - ✅ FIG 1/4: Service component label
 
 ### FIG Type 2 (Labels with Character Sets)
-- ✅ FIG 2/1: Service component dynamic label **NEW**
+- ✅ FIG 2/1: Service component dynamic label
 
-**Total:** 20 FIG types implemented
+### FIG Type 6 (Conditional Access)
+- ✅ FIG 6/0: CA organization **NEW**
+- ✅ FIG 6/1: CA service **NEW**
+
+**Total:** 22 FIG types implemented
 
 ---
 
 ## Test Coverage & Quality
 
 ### Test Statistics
-- **Total Tests:** 985 passing (excluding 4 pre-existing UDP failures)
+- **Total Tests:** 1010 passing (excluding 4 pre-existing UDP failures)
 - **Code Coverage:** 73% overall
 - **Test Distribution:**
   - Core FIG types: 320+ tests
@@ -258,6 +304,7 @@ ensemble:
   - Priority 5 (EDI): 61 tests
   - Priority 5.5 (ETI): 37 tests
   - Priority 6: 58 tests
+  - Priority 7: 25 tests
   - MOT: 60+ tests
   - Integration: 50+ tests
 
@@ -371,13 +418,14 @@ ensemble:
 
 ## What's Next?
 
-### Completed Priorities (1-6)
+### Completed Priorities (1-7)
 - ✅ Priority 1: Emergency Alerting
 - ✅ Priority 2: Service Management & Navigation
 - ✅ Priority 3: Data Services & Packet Mode
 - ✅ Priority 4: Advanced Signalling
 - ✅ Priority 5: EDI Output
 - ✅ Priority 6: Remote Control & Management
+- ✅ Priority 7: Conditional Access & Security
 
 ### Future Priorities (Optional)
 

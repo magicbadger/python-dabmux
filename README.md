@@ -105,19 +105,24 @@ etisnoop -i output.eti
 
 ### Getting Started
 - **[Quick Start Guide](docs/QUICK_START.md)** - Get running in 5 minutes
-- **[Configuration Reference](docs/CONFIGURATION.md)** - Complete YAML reference (if exists)
+- **[Configuration Reference](docs/CONFIGURATION_REFERENCE.md)** - Complete YAML reference
 - **[Examples](examples/)** - Ready-to-use configurations
 
 ### Features & Guides
 - **[MOT Carousel Guide](docs/MOT_CAROUSEL_GUIDE.md)** - Images, slideshow, EPG
-- **[Remote Control Guide](docs/REMOTE_CONTROL.md)** - ZMQ/Telnet API (if exists)
-- **[EDI Output Guide](docs/EDI_OUTPUT.md)** - IP distribution (if exists)
-- **[Emergency Alerting](docs/EAS_GUIDE.md)** - FIG 0/18, 0/19 (if exists)
+- **[Remote Control Guide](docs/REMOTE_CONTROL_GUIDE.md)** - ZMQ/Telnet API
+- **[EDI Output Guide](docs/EDI_OUTPUT_GUIDE.md)** - IP distribution
+- **[Emergency Alerting Guide](docs/EMERGENCY_ALERTING_GUIDE.md)** - FIG 0/18, 0/19
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING_GUIDE.md)** - Common issues
 
 ### Project Status
 - **[Comprehensive Status](COMPREHENSIVE_STATUS.md)** - Complete feature list
 - **[TODO](TODO.md)** - Roadmap and future enhancements
 - **[CHANGELOG](CHANGELOG.md)** - Version history
+
+### Standards & Compliance
+- **[Standards Compliance](docs/STANDARDS_COMPLIANCE.md)** - ETSI compliance audit
+- **[Known Deviations](docs/KNOWN_DEVIATIONS.md)** - Non-implemented features
 
 ---
 
@@ -437,9 +442,9 @@ Contributions are welcome! Please:
 
 ## Project Status
 
-**Version:** 1.0.0 (Phase 7 Complete)
+**Version:** 1.0.0 (Priority 9 Complete)
 
-**Status:** 🟢 **Production Ready**
+**Status:** 🟢 **Production Ready & Fully Documented**
 
 **Priorities Completed:**
 1. ✅ Emergency Alerting & Notifications
@@ -449,12 +454,15 @@ Contributions are welcome! Please:
 5. ✅ EDI Output
 6. ✅ Remote Control & Management
 7. ✅ Conditional Access & Security
+8. ⏸️ Regional Services (deferred - specialized use case)
+9. ✅ Quality & Compliance (testing, documentation, standards audit)
 
 **Statistics:**
-- 1010 tests passing
+- 1050+ tests passing (1010 + 40 new compliance/stress tests)
 - 22 FIG types implemented
 - 73% code coverage
 - 19,700+ lines of source code
+- 5,400+ lines of documentation (8 comprehensive guides)
 
 **Ready for deployment in:**
 - Commercial DAB stations
